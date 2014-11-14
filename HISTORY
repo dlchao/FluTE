@@ -154,3 +154,9 @@ Version 1.13 - January 14, 2010
 Minor optimizations in epimodel.cpp for speed.
 Fixed bug in dayinfectsusceptibles that could cause preschoolers in 
 playgroups to transmit to family members.
+
+*********************************************************
+
+Version 1.14 - March 22, 2010
+
+Fixed some error and warning messages in mpiflute.

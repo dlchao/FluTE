@@ -29,7 +29,7 @@ parallel version of flute by compiling the source files with "PARALLEL"
 defined.
 
 Compiling mpiflute may require modification of the Makefile.  The
-current Makefile assumes 
+current Makefile works with OpenMPI.
 
 --------------------------
 2. Data files
@@ -261,6 +261,9 @@ where config is the name of your configuration file.
 The program will print out its version number and any configuration
 errors to stdout.
 
+To run mpiflute on 32 processors using OpenMPI:
+  mpirun -np32 mpiflute config
+
 To run mpiflute on 32 processors using SLURM:
   sbatch -pqueue -n 32 mpiflutescript.sh
 where "queue" is the processor queue and mpiflutescript.sh is a 
@@ -268,10 +271,12 @@ two-line file:
   #!/bin/sh
   mpirun ./mpiflute config
 where config is the name of your configuration file.
-We suggest using mpiflute when necessary. The overhead from the
+We suggest using mpiflute only when necessary. The overhead from the
 inter-node communication will slow down the simulation. In mpiflute,
 counties are never split across nodes, so a simulation must cover
-more than one county for mpiflute to be useful.
+more than one county for mpiflute to be useful. If more nodes are 
+assigned to mpiflute than it can use, it will exit with an error.
+The continental US can be run with up to 44 nodes. 
 
 --------------------------
 5. Output files

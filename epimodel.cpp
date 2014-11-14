@@ -23,7 +23,7 @@ extern "C" {
 using namespace std;
 
 const int nVersionMajor = 1;
-const int nVersionMinor = 13;
+const int nVersionMinor = 14;
 
 // vaccine efficacy over time when individuals need a boost for a one-dose vaccine
 const double defaultvacceff[VACCEFFLENGTH+1] = {0,0.001,0.004,0.011,0.023,0.043,0.07,0.106,0.153,0.211,0.28,0.363,0.46,0.572,0.7,0.7,0.7,0.7,0.7,0.7,0.7,0.7,0.702,0.71,0.73,0.766,0.82,0.897,1};
@@ -362,7 +362,7 @@ void EpiModel::read_tracts(void) {
   // read all tracts
   ifstream iss(oss.str().c_str());
   if (!iss) {
-    cerr << oss.str() << " not found." << endl;
+    cerr << "ERROR: " << oss.str() << " not found." << endl;
     MPI::Finalize();
     exit(-1);
   }
@@ -373,7 +373,7 @@ void EpiModel::read_tracts(void) {
   // keep tracts from the same county on the same node
   unsigned int firsttract = (int)(rank*nNumTractsTotal/size);
   unsigned int lasttract = (int)((rank+1)*nNumTractsTotal/size);
-  if (rank>0) {
+  if (rank>0 && firsttract>0) {
     // these tracts should go to earlier nodes
     unsigned int firstcounty = tractvec[firsttract].fips_county;
     do {
@@ -381,7 +381,7 @@ void EpiModel::read_tracts(void) {
     } while (firsttract>=0 && tractvec[firsttract].fips_county==firstcounty);
     firsttract++;
   }
-  if (rank<size-1) {
+  if (rank<size-1 && lasttract>0) {
     // these tracts should go to later nodes
     unsigned int lastcounty = tractvec[lasttract].fips_county;
     do {
@@ -389,11 +389,7 @@ void EpiModel::read_tracts(void) {
     } while (lasttract>0 && tractvec[lasttract].fips_county==lastcounty);
     lasttract++;
   }
-  if (lasttract==0 || firsttract==lasttract) {
-    cerr << "ERROR: Could not assign counties to nodes in mpiflute.  Try running with fewer nodes or using flute instead" << endl;
-    MPI::Finalize();
-    exit(-1);
-  }
+
   if (firsttract>0)
     tractvec.erase(tractvec.begin(),tractvec.begin()+firsttract);
   if (lasttract<nNumTractsTotal)
@@ -409,6 +405,13 @@ void EpiModel::read_tracts(void) {
     if (i==rank)
       nFirstTract=disps[i];
     disps[i+1] = disps[i]+numTractsPerNode[i];
+
+    if (numTractsPerNode[i]==0) {
+      if (rank==0)
+	cerr << "ERROR: Could not assign counties to nodes in mpiflute.  Try running with fewer nodes or using flute instead" << endl;
+      MPI::Finalize();
+      exit(-1);
+    }
   }
   nNumTractsTotal = disps[size];
   
@@ -440,7 +443,7 @@ void EpiModel::read_tracts(void) {
   oss.str(szBaseName+"-tracts.dat");
   ifstream iss(oss.str().c_str());
   if (!iss) {
-    cerr << oss.str() << " not found." << endl;
+    cerr << "ERROR: " << oss.str() << " not found." << endl;
     exit(-1);
   }
   istream_iterator< Tract > iscit(iss), eos;
@@ -559,7 +562,7 @@ void EpiModel::read_workflow(void)
   oss.str(szBaseName+"-employment.dat");
   ifstream iss(oss.str().c_str());
   if (!iss) {
-    cerr << oss.str() << " not found." << endl;
+    cerr << "ERROR: " << oss.str() << " not found." << endl;
 #ifdef PARALLEL
     MPI::Finalize();
 #endif
@@ -593,7 +596,7 @@ void EpiModel::read_workflow(void)
   // Read workflow data
   unsigned int *flow = new unsigned int[nNumTracts*nNumTractsTotal]; // Workerflow matrix
   if (!flow) {
-    cerr << "Could not allocate workerflow matrix. (" << (nNumTracts*nNumTractsTotal) << " ints)" << endl;
+    cerr << "ERROR: Could not allocate workerflow matrix. (" << (nNumTracts*nNumTractsTotal) << " ints)" << endl;
 #ifdef PARALLEL
     MPI::Finalize();
 #endif
@@ -602,11 +605,6 @@ void EpiModel::read_workflow(void)
   memset(flow, 0, nNumTracts*nNumTractsTotal*sizeof(unsigned int));
   oss.str(szBaseName+"-wf.dat");
   if (!read_workflow_file(oss.str(), flow, statetracts)) {
-#if PARALLEL
-    if (!rank)
-#endif
-      cerr << "Workerflow file " << oss.str() << " not found." << endl;
-
     // look at state-based wf files here
     bool bSuccess = false;
     for (unsigned int i=1; i<=56; i++) {
@@ -629,7 +627,7 @@ void EpiModel::read_workflow(void)
       }
     }
     if (!bSuccess) {
-      cerr << "Could not find any workerflow files." << endl;
+      cerr << "ERROR: Could not find any workerflow files." << endl;
 #ifdef PARALLEL
       MPI::Finalize();
 #endif
