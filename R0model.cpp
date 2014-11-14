@@ -88,6 +88,7 @@ void R0Model::run(void) {
     nTimer++;
   }
   summary();
+  outputIndividuals();
 }
 
 int main(int argc, char *argv[]) {

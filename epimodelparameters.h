@@ -26,6 +26,7 @@ class EpiModelParameters {
   // epidemic parameters
   double getBeta() { return beta; }
   double getR0() { return R0; }
+  double *getSeasonality() { return seasonality; }
   int getTriggerDelay() { return nTriggerDelay; }
   int getAscertainmentDelay() { return nAscertainmentDelay; }
   double getAscertainmentFraction() { return fSymptomaticAscertainment; }
@@ -85,13 +86,14 @@ class EpiModelParameters {
   bool read_config_bool(bool &result, istream &iss, const char *s);
   bool read_config_int(int &result, istream &iss, const char *s);
   bool read_config_unsigned(unsigned int &result, istream &iss, const char *s);
-  bool read_config_double(double &result, istream &iss, const char *s, const double max);
+  bool read_config_double(double &result, istream &iss, const char *s, const double min, const double max);
   bool readConfigFile(const char *configname);
   bool createOutputFiles(void);
 
   int nRunLength; // total time of simulation in days
   double beta;    // transmisison parameter
   double R0;      // R_0 (used to derive beta)
+  double seasonality[MAXRUNLENGTH];      // multiplier of beta
   double fPreexistingImmunityByAge[TAG];  // fraction with pre-existing (sterilizing) immunity by age group
   double fBaselineVESByAge[TAG];  // default VES by age group
 
@@ -146,7 +148,7 @@ class EpiModelParameters {
   vaccinedatastruct vaccinedata[NUMVACCINES];
   double fVaccineEfficacyByAge[TAG];           // relative efficacy of vaccine by age
   bool bVaccineBoostByAge[TAG+3]; // requires boost?
-  unsigned int vaccineproductionschedule[NUMVACCINES][180];
+  unsigned int vaccineproductionschedule[NUMVACCINES][MAXRUNLENGTH];
   double AVEs;  // less likely to get infected
   double AVEp;  // less likely to become sick given infection
   double AVEi; // less likely to infect others

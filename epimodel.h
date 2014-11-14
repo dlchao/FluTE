@@ -185,6 +185,9 @@ struct Person {
 
   char sourcetype;      // in which setting infection took place
   unsigned int sourceid;// keeping track of the source of infection
+#ifdef PARALLEL
+  int sourcerank;       // keeping track of the source of infection
+#endif
 
   int family;	        // family ID
   unsigned char nFamilySize; // family size
@@ -445,6 +448,7 @@ class EpiModel {
   unsigned int nNumTractsTotal; // number of tracts across all CPUs
   double beta; // transmisison parameter
   double R0;   // R_0 (used to derive beta)
+  double seasonality[MAXRUNLENGTH];      // multiplier of beta
 
   vector < Person >    pvec;	   // vector of residents
   vector < Tract >     tractvec;   // the census tracts
@@ -522,7 +526,7 @@ class EpiModel {
   int nNumVaccineTypes;                        // number of defined vaccine types
   double fVaccineEfficacyByAge[TAG];           // relative efficacy of vaccine by age
   bool bVaccineBoostByAge[TAG+3]; // requires boost?
-  unsigned int vaccineproductionschedule[NUMVACCINES][180];
+  unsigned int vaccineproductionschedule[NUMVACCINES][MAXRUNLENGTH];
   double vload[VLOADNSUB][VLOADNDAY]; // re-scaled version of basevload from params.h
 
   // antiviral efficacy

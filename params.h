@@ -53,6 +53,9 @@ extern const double basevload[VLOADNSUB][VLOADNDAY];
 // 28 days for VE buildup
 #define VACCEFFLENGTH 28
 
+// maximum length of a simulation in days (change this if you want longer runs)
+#define MAXRUNLENGTH 180
+
 // travel data
 extern const double travel_pr[TAG]; // age-specific travel probability per day
 extern const double travel_length_cdf[12]; // cdf of length of trip in days (nights away from home)

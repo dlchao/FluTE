@@ -146,3 +146,11 @@ Version 1.12 - December 21, 2009
 Added option to open schools in different states at different times.
 
 Allows one to change vaccine prioritization in the middle of a simulation.
+
+*********************************************************
+
+Version 1.13 - January 14, 2010
+
+Minor optimizations in epimodel.cpp for speed.
+Fixed bug in dayinfectsusceptibles that could cause preschoolers in 
+playgroups to transmit to family members.

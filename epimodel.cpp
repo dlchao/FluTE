@@ -23,7 +23,7 @@ extern "C" {
 using namespace std;
 
 const int nVersionMajor = 1;
-const int nVersionMinor = 12;
+const int nVersionMinor = 13;
 
 // vaccine efficacy over time when individuals need a boost for a one-dose vaccine
 const double defaultvacceff[VACCEFFLENGTH+1] = {0,0.001,0.004,0.011,0.023,0.043,0.07,0.106,0.153,0.211,0.28,0.363,0.46,0.572,0.7,0.7,0.7,0.7,0.7,0.7,0.7,0.7,0.702,0.71,0.73,0.766,0.82,0.897,1};
@@ -106,6 +106,8 @@ EpiModel::EpiModel(EpiModelParameters &params) {
 
   beta = params.getBeta();
   R0 = params.getR0();
+  memcpy(seasonality, params.getSeasonality(), MAXRUNLENGTH*sizeof(double));
+
   nRunLength = params.getRunLength();
   memcpy(fPreexistingImmunityByAge, params.getPreexistingImmunityByAge(), TAG*sizeof(double));
   memcpy(fBaselineVESByAge, params.getBaselineVESByAge(), TAG*sizeof(double));
@@ -128,7 +130,7 @@ EpiModel::EpiModel(EpiModelParameters &params) {
   vaccinedatastruct *vdata = params.getVaccineData();
   for (int i=0; i<NUMVACCINES; i++) {
     memcpy(VaccineData+i, vdata+i, sizeof(vaccinedatastruct));
-    memcpy(vaccineproductionschedule+i, params.getVaccineProductionSchedule(i), 180*sizeof(unsigned int));
+    memcpy(vaccineproductionschedule+i, params.getVaccineProductionSchedule(i), MAXRUNLENGTH*sizeof(unsigned int));
     if (VaccineData[i].nNumDoses<=0)
       break;
     nNumVaccineTypes = i+1;
@@ -1071,7 +1073,6 @@ bool EpiModel::isAscertained(const Person &p) {
  */
 void EpiModel::infect(Person& p) {
   clearSusceptible(p); // no longer susceptible
-  assert(!isSusceptible(p));
   setInfected(p);           // infected
   // length of incubation period
   p.iday=-1;  // set to -1 so the person is not infectious until tomorrow
@@ -1149,17 +1150,16 @@ void EpiModel::infect(Person& p) {
  */
 bool EpiModel::infect(Person& p, const Person& source, double baseprob, int sourcetype) {
   assert(source.iday>=0);
-  if (isSusceptible(p)) {
-    if (genrand_real1()<baseprob*p.prs*source.pri) {
-      p.sourceid = source.id;
-      p.sourcetype = sourcetype;
-      p.nInfectedTime = nTimer;
+  assert(isSusceptible(p));
+  if (genrand_real1()<baseprob*p.prs*source.pri) {
+    p.sourceid = source.id;
+    p.sourcetype = sourcetype;
+    p.nInfectedTime = nTimer;
 #ifdef PARALLEL
-      // save rank of source
+    p.sourcerank = source.nHomeRank;
 #endif
-      infect(p);
-      return true;
-    }
+    infect(p);
+    return true;
   }
   return false;
 }
@@ -1250,6 +1250,20 @@ void EpiModel::TAP(Person& p) {
 
 // dayinfectsusceptibles - called by "day" for daytime transmission
 void EpiModel::dayinfectsusceptibles(const Person &infected, Community &comm) {
+  const double *cpf = (isChild(infected)?cpfc:cpfa); // probability of family transmission
+  bool bInfectedAtHome = (isWithdrawn(infected) ||
+			  isQuarantined(infected) ||
+			  infected.nWorkplace==0 ||
+			  (isChild(infected) && 
+			   infected.nWorkplace<9 &&
+			   isSchoolClosed(tractvec[infected.nDayTract-nFirstTract], infected.nWorkplace)));   // infected is at home during the day
+  bool bInfectedAtSchool = (isChild(infected) && 
+			    infected.nWorkplace>0 && 
+			    ((infected.age==0 && infected.nWorkplace>=9) ||
+			     !isSchoolClosed(tractvec[infected.nDayTract-nFirstTract], infected.nWorkplace))); // infected's school or playgroup is open (playgroups are always open)
+  bool bInfectedAtWork = (isWorkingAge(infected) && 
+			  infected.nWorkplace>0);  // infected works during the day
+
   vector< unsigned int >::iterator wend = comm.workers.end();
   list< Person >::iterator vend=comm.visitors.end();
 #ifdef PARALLEL
@@ -1270,19 +1284,14 @@ void EpiModel::dayinfectsusceptibles(const Person &infected, Community &comm) {
     if (isSusceptible(p2) && p2.nDayComm==comm.id && p2.nTravelTimer<=0) {
 #endif
       if (infected.family==p2.family && // daytime transmission within household
-	  (isWithdrawn(infected) ||
-	   isQuarantined(infected) ||
-	   infected.nWorkplace==0 ||
-	   (isChild(infected) && 
-	    isSchoolClosed(tractvec[comm.nTractID-nFirstTract], infected.nWorkplace))) &&   // infected is at home
+	  bInfectedAtHome &&
 	  (isQuarantined(p2) ||
 	   p2.nWorkplace==0 ||
 	   (isChild(p2) && 
+	    p2.nWorkplace<9 &&
 	    isSchoolClosed(tractvec[comm.nTractID-nFirstTract], p2.nWorkplace)))) {         // susceptible is at home
-	if (isChild(infected)) {
-	  infect(p2,infected,cpfc[p2.age],FROMFAMILY);
-	} else
-	  infect(p2,infected,cpfa[p2.age],FROMFAMILY);
+	if (infect(p2,infected,cpf[p2.age],FROMFAMILY))
+	  continue;
       }
 
       double casualmultiplier2 = casualmultiplier; // casual contacts multiplier for children
@@ -1292,17 +1301,14 @@ void EpiModel::dayinfectsusceptibles(const Person &infected, Community &comm) {
 
       if (!isQuarantined(p2) && !infect(p2,infected,comm.daycpcm[p2.age]*casualmultiplier2,FROMCOMMUNITY)) { // transmission within community
 	if (infected.nDayNeighborhood==p2.nDayNeighborhood)  // transmission within neighborhood
-	  infect(p2,infected,comm.daycpnh[p2.age]*casualmultiplier2,FROMNEIGHBORHOOD);
-	if (isSusceptible(p2)) {
-	  if (isChild(infected)) {  // transmitter is child
-	    if (isChild(p2) && infected.nWorkplace>0 && infected.nWorkplace==p2.nWorkplace && 
-		((infected.age==0 && infected.nWorkplace>=9) ||
-		 !isSchoolClosed(tractvec[comm.nTractID-nFirstTract], infected.nWorkplace))) // school must be open (playgroups are always open)
-	      infect(p2,infected,(infected.nWorkplace>=9?cps[9]:comm.cps[infected.nWorkplace]),FROMSCHOOL); // transmission within school/daycare/playgroup
-	  } else {           // transmitter is adult
-	    if (isWorkingAge(infected) && isWorkingAge(p2) && infected.nWorkplace>0 && infected.nWorkplace==p2.nWorkplace)  // transmission within work group
-	      infect(p2,infected,cpw,FROMWORK);
-	  }
+	  if (infect(p2,infected,comm.daycpnh[p2.age]*casualmultiplier2,FROMNEIGHBORHOOD))
+	    continue;
+	if (isChild(infected)) {  // transmitter is child
+	  if (bInfectedAtSchool && isChild(p2) && infected.nWorkplace==p2.nWorkplace)
+	    infect(p2,infected,(infected.nWorkplace>=9?cps[9]:comm.cps[infected.nWorkplace]),FROMSCHOOL); // transmission within school/daycare/playgroup
+	} else {           // transmitter is adult
+	  if (bInfectedAtWork && isWorkingAge(p2) && infected.nWorkplace==p2.nWorkplace)  // transmission within work group
+	    infect(p2,infected,cpw,FROMWORK);
 	}
       }
     }
@@ -1316,8 +1322,9 @@ void EpiModel::dayinfectsusceptibles(const Person &infected, Community &comm) {
     if (isSusceptible(p2) && !isQuarantined(p2) && p2.nTravelTimer<=0) {
       if (!infect(p2,infected,comm.daycpcm[p2.age]*casualmultiplier,FROMCOMMUNITY)) { // transmission within community
 	if (infected.nDayNeighborhood==p2.nDayNeighborhood)  // transmission within neighborhood
-	  infect(p2,infected,comm.daycpnh[p2.age]*casualmultiplier,FROMNEIGHBORHOOD);
-	if (isSusceptible(p2) && isWorkingAge(infected) && infected.nWorkplace==p2.nWorkplace) {
+	  if (infect(p2,infected,comm.daycpnh[p2.age]*casualmultiplier,FROMNEIGHBORHOOD))
+	    continue;
+	if (isWorkingAge(infected) && infected.nWorkplace==p2.nWorkplace) {
 	  // transmit to coworkers from other tracts
 	  assert(infected.nWorkplace>0);
 	  infect(p2,infected,cpw,FROMWORK);
@@ -1335,8 +1342,9 @@ void EpiModel::dayinfectsusceptibles(const Person &infected, Community &comm) {
     if (isSusceptible(p2) && !isQuarantined(p2) && p2.nTravelTimer<=0) {
       if (!infect(p2,infected,comm.daycpcm[p2.age]*casualmultiplier,FROMCOMMUNITY)) { // transmission within community
 	if (infected.nDayNeighborhood==p2.nDayNeighborhood)  // transmission work neighborhood
-	  infect(p2,infected,comm.daycpnh[p2.age]*casualmultiplier,FROMNEIGHBORHOOD);
-	if (isSusceptible(p2) && isWorkingAge(infected) && infected.nWorkplace==p2.nWorkplace) {
+	  if (infect(p2,infected,comm.daycpnh[p2.age]*casualmultiplier,FROMNEIGHBORHOOD))
+	    continue;
+	if (isWorkingAge(infected) && infected.nWorkplace==p2.nWorkplace) {
 	  // transmit to coworkers from other nodes
 	  assert(infected.nWorkplace>0);
 	  infect(p2,infected,cpw,FROMWORK);
@@ -1357,10 +1365,10 @@ void EpiModel::dayinfectsusceptibles(const Person &infected, Community &comm) {
       if (isSusceptible(p2)) { // && !isQuarantined(p2)) {
 	if (!infect(p2,infected,comm.daycpcm[p2.age]*casualmultiplier,FROMCOMMUNITY)) { // transmission within community
 	  if (infected.nDayNeighborhood==p2.nDayNeighborhood)  // transmission work neighborhood
-	    infect(p2,infected,comm.daycpnh[p2.age]*casualmultiplier,FROMNEIGHBORHOOD);
-	  if (isSusceptible(p2) && isWorkingAge(infected) && isWorkingAge(p2) && infected.nWorkplace==p2.nWorkplace && p2.nWorkplace>0) {
+	    if (infect(p2,infected,comm.daycpnh[p2.age]*casualmultiplier,FROMNEIGHBORHOOD))
+	      continue;
+	  if (isWorkingAge(infected) && isWorkingAge(p2) && infected.nWorkplace==p2.nWorkplace && p2.nWorkplace>0)
 	    infect(p2,infected,cpw,FROMWORK);
-	  }
 	}
       }
     }
@@ -1381,7 +1389,8 @@ void EpiModel::day(void) {
     Person &p = *it;
     p.prs = 1.0-p.fBaselineVES; // susceptibility multiplier
     if (isInfectious(p))
-      p.pri = vload[p.nWhichVload][(int)(p.iday)]; // infectiousness multiplier
+      p.pri = vload[p.nWhichVload][(int)(p.iday)] *
+	seasonality[nTimer/2]; // infectiousness multiplier
     else
       p.pri = 0.0;
     if (isVaccinated(p)) {  // effects of the vaccine on transmission
@@ -1527,28 +1536,25 @@ void EpiModel::day(void) {
 
 // nightinfectsusceptibles - called by "night" for nighttimetime transmission
 void EpiModel::nightinfectsusceptibles(const Person &infected, Community &comm) {
+  const double *cpf = (isChild(infected)?cpfc:cpfa); // probability of family transmission
+  const double *cphc = (isChild(infected)?cphcc:cphca); // probability of household cluster transmission
+  
   for (unsigned int pid2=comm.nFirstPerson;
        pid2<comm.nLastPerson;
        pid2++) {
     Person &p2 = pvec[pid2];
     if (isSusceptible(p2) && p2.nTravelTimer<=0) { // && p.id!=p2.id) {
-      if (infected.family==p2.family) { // transmission within household
-	if (isChild(infected))
-	  infect(p2,infected,cpfc[p2.age],FROMFAMILYNIGHT);
-	else
-	  infect(p2,infected,cpfa[p2.age],FROMFAMILYNIGHT);
-      }
+      if (infected.family==p2.family)   // transmission within household
+	if (infect(p2,infected,cpf[p2.age],FROMFAMILYNIGHT))
+	  continue;
       if (!isWithdrawn(infected) && !isQuarantined(infected) && !isQuarantined(p2)) {
 	assert(infected.nHomeComm==p2.nHomeComm);
 	if (!infect(p2,infected,comm.cpcm[p2.age],FROMCOMMUNITYNIGHT)) { // transmission within home community
 	  if (infected.nHomeNeighborhood==p2.nHomeNeighborhood) // transmission within neighborhood
-	    infect(p2,infected,comm.cpnh[p2.age],FROMNEIGHBORHOODNIGHT);
-	  if (infected.householdcluster==p2.householdcluster) { // transmission within household cluster
-	    if (isChild(infected))
-	      infect(p2,infected,cphcc[p2.age],FROMHHCLUSTERNIGHT);
-	    else
-	      infect(p2,infected,cphca[p2.age],FROMHHCLUSTERNIGHT);
-	  }
+	    if (infect(p2,infected,comm.cpnh[p2.age],FROMNEIGHBORHOODNIGHT))
+	      continue;
+	  if (infected.householdcluster==p2.householdcluster) // transmission within household cluster
+	    infect(p2,infected,cphc[p2.age],FROMHHCLUSTERNIGHT);
 	}
       }
     }
@@ -1561,23 +1567,17 @@ void EpiModel::nightinfectsusceptibles(const Person &infected, Community &comm) 
 	 it++) {
       Person &p2 = *it;
       if (isSusceptible(p2)) {
-	if (infected.family==p2.family) { // transmission within household
-	  if (isChild(infected))
-	    infect(p2,infected,cpfc[p2.age],FROMFAMILY);
-	  else
-	    infect(p2,infected,cpfa[p2.age],FROMFAMILY);
-	}
+	if (infected.family==p2.family)  // transmission within household
+	  if (infect(p2,infected,cpf[p2.age],FROMFAMILY))
+	    continue;
 	if (!isWithdrawn(infected) && !isQuarantined(infected) && !isQuarantined(p2)) {
 	  assert(infected.nHomeComm==p2.nHomeComm);
 	  if (!infect(p2,infected,comm.cpcm[p2.age],FROMCOMMUNITYNIGHT)) { // transmission within home community
 	    if (infected.nHomeNeighborhood==p2.nHomeNeighborhood) // transmission within neighborhood
-	      infect(p2,infected,comm.cpnh[p2.age],FROMNEIGHBORHOODNIGHT);
-	    if (infected.householdcluster==p2.householdcluster) { // transmission within household cluster
-	      if (isChild(infected))
-		infect(p2,infected,cphcc[p2.age],FROMHHCLUSTERNIGHT);
-	      else
-		infect(p2,infected,cphca[p2.age],FROMHHCLUSTERNIGHT);
-	    }
+	      if (infect(p2,infected,comm.cpnh[p2.age],FROMNEIGHBORHOODNIGHT))
+		continue;
+	    if (infected.householdcluster==p2.householdcluster) // transmission within household cluster
+	      infect(p2,infected,cphc[p2.age],FROMHHCLUSTERNIGHT);
 	  }
 	}
       }
@@ -2819,11 +2819,11 @@ void EpiModel::summary(void) {
   
     for (int i=0; i<nNumVaccineTypes; i++) {
       unsigned int sum=0;
-      for (int day=0; day<180; day++)
+      for (int day=0; day<MAXRUNLENGTH; day++)
 	sum += vaccineproductionschedule[i][day];
       if (sum>0) {
 	outfile << "vaccine " << i << " production/day: ";
-	for (int day=0; day<180; day++)
+	for (int day=0; day<MAXRUNLENGTH; day++)
 	  outfile << vaccineproductionschedule[i][day] << ",";
 	outfile << endl;
       }
