@@ -1,0 +1,148 @@
+FluTE version history
+
+Version 1.0 - January 31, 2009
+
+Used for early versions of Los Angeles County pandemic planning. 
+The parallel version runs, but long-distance travel is not implemented 
+so the nation-wide simulations should not be run.  School closure is 
+permanent – schools don’t re-open after they are closed.
+
+*********************************************************
+
+Version 1.1 - March 13, 2009
+
+Added the childvaccinationpolicy parameter, which can be used to 
+vaccinate all children, children enrolled in elementary and middle 
+school, or children enrolled in elementary, middle, and high school. 
+This was used for the Alachua County simulations.
+
+The option "closeschools" has been changed so that it represents the 
+number of days schools will stay closed. For example, setting it to 30 
+would mean that they are closed for one month.  
+
+The parallel code to read the tract data has been rewritten so that 
+tracts in the same county will be on the same node. This makes it 
+easier to associate nodes with airports and to implement county-wide 
+policies.
+
+Added short-term long-distance travel to the model based on the 
+description in Germann et al. [2006]. 
+
+There is now an option (seedairports) to use the top 15 airports in the 
+US as sources of infection.
+
+Added more information to the summary file.
+
+*********************************************************
+
+Version 1.2 - April 2, 2009
+
+Fixed bugs in the prime boost strategies.  These strategies had been
+giving boosts to too many people in earlier versions.
+
+*********************************************************
+
+Version 1.3 - April 23, 2009
+
+Moved parameter file reading code to EpiModelParameters class.
+Added the antiviralpolicy parameter to the configuration file.
+
+*********************************************************
+
+Version 1.4 - May 12, 2009
+
+Added new antiviral distribution parameters, including treatment only
+and full TAP (full TAP not finished yet).
+Added contact ascertainment fraction (for full TAP).
+Added runlength parameter for setting the number of simulation days.
+Added schoolclosurepolicy: set to none for no school closure, all for 
+county-wide school closure, and bytractandage for tract closure upon ascertainment.
+
+Ring vaccination might be buggy.
+
+*********************************************************
+
+Version 1.5 - May 21, 2009
+
+Major bug fix - epimodel.cpp was not using the VE and AVE parameters
+from the configuration file since version 1.3.  
+
+The Tracts files are now output by mpiflute. 
+ 
+Tract files are only output when Log files are generated.
+
+I took out the dummy data for day 0 in the viral load data, so the 
+average case serial interval is 3.6 days instead of 4.6 days.  I had 
+to re-calibrate the beta to R0 conversion.  
+
+*********************************************************
+
+Version 1.6 - June 10, 2009
+
+Fixed reactive ring vaccination.
+
+Moved some definitions from params.cpp to epimodelparams.cpp.
+
+*********************************************************
+
+Version 1.7 - July 16, 2009
+
+Fixed R0flute compilation in the Makefile.
+
+Major revision of vaccines.  Data for each vaccine type is stored 
+in vaccinedatastruct's.  Added new categories of individuals so that
+vaccines can be restricted for these classes of individuals (e.g.,
+asthmatics, pregnant people). 
+
+The configuration parameters for vaccines are different now.
+
+Daytime household contacts have been added.  Individuals who are
+unemployed and not enrolled in school may interact with other 
+household members in the same situation.  Contact probabilities and 
+R0 were recalibrated because of this.
+
+*********************************************************
+
+Version 1.8 - August 5, 2009
+
+Fixed bug in mass vaccination when more than one dose is required.
+Fixed bug in reactive vaccination strategies for mpiflute.
+
+Fixed Summary and Individuals file output bugs for mpiflute.
+
+Added vaccine delivery schedule parameter for phased vaccination
+strategies.
+
+*********************************************************
+
+Version 1.9 - September 1, 2009
+
+Changed vaccine prioritization implementation again.
+Changed pregnant, at-risk, and high priority categories.
+Added "vaccineefficacybyage".
+Added age category of "under 6 months".
+Prime-boost strategies might be buggy in this version.
+
+*********************************************************
+
+Version 1.10 - September 21, 2009
+
+Updated README file.
+Slight change in the default vaccine buildup assumption.
+Changed default values of the vaccination priority groups
+so that everyone has the same priority.
+
+*********************************************************
+
+Version 1.11 - November 2, 2009
+
+Added an option for requiring 2 doses for certain age groups.
+Added option for pre-existing immunity.
+
+*********************************************************
+
+Version 1.12 - December 21, 2009
+
+Added option to open schools in different states at different times.
+
+Allows one to change vaccine prioritization in the middle of a simulation.

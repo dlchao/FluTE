@@ -1,0 +1,334 @@
+Instructions for FluTE, a stochastic influenza epidemic simulation model
+by Dennis Chao
+December 21, 2009
+
+FluTE is an individual-based model that runs in discrete time, with two 
+time steps per simulation day, representing day and night. 
+
+--------------------------
+1. Compilation
+
+The Makefile can be used on Linux systems to compile flute (standard 
+simulator), mpiflute (parallel version of flute that uses OpenMPI), and 
+R0flute (version of flute in which only a single index case is infectious).
+
+The source files are:
+  epimodel.cpp - model implementation
+  flute.cpp - contains main()
+  params.cpp - simulation constants
+  epimodelparameters.cpp - code to parse config files
+  R0model.cpp - class derived from epimodel.cpp for R0 calculations.  
+    Contains main().
+  SFMT.c - SIMD oriented Fast Mersenne Twister (SFMT) (from 
+    http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/SFMT)
+  bnldev.c - Numerical Recipes in C code for drawing random numbers 
+    from the binomial distribution
+
+If you do not use the Makefile for compilation, you can compile the
+parallel version of flute by compiling the source files with "PARALLEL" 
+defined.
+
+Compiling mpiflute may require modification of the Makefile.  The
+current Makefile assumes 
+
+--------------------------
+2. Data files
+
+A set of 3 data files needs to be in the same directory as the 
+executable to specify a population for FluTE. The file names consist of
+a prefix (e.g., "seattle") followed by a suffix.
+
+*-tracts.dat - Tract populations and locations, from 
+http://www.census.gov/geo/www/cenpop/cntpop2k.html. The columns in
+this comma-delimited file are: state FIPS code, county FIPS code, 
+tract FIPS code, tract population, tract longitude, and tract 
+latitude.
+
+*-wf.dat - Tract-to-tract workerflow, extracted from stp64.us from 
+Census 2000 Special Tabulation Product 64: Census tract of work by 
+census tract of residence 2000. For the US-level data. Commutes over 
+100 miles were eliminated from the data. The columns in this space-
+delimited file are: home state FIPS code, home county FIPS code, home 
+tract FIPS code, work state FIPS code, work county FIPS code, work 
+tract FIPS code, and number of workers.
+
+*-employment.dat - The number of employed working-age adults and the 
+total number of working-age adults, from the Census Summary File 3 
+(SF3, Table PCT35). The columns in this space-delimited file are: 
+state FIPS code, county FIPS code, tract FIPS code, number of employed
+20-64 year olds, and the total number of working-age individuals
+(19-64 year olds).
+
+The sample populations are:
+
+one - a single community of 2000 people.
+
+seattle - metropolitan Seattle, based on the 2000 US Census.
+
+la - Los Angeles County.  la-tracts.dat is not from the 2000 Census;
+It is based on 2007 PEPS estimates from Walter R. McDonald & 
+Associates, Inc. (WRMA) and padded with an additional 776,000 
+individuals to represent the estimated undocumented population 
+[Flaming et al. Hopeful Workers, Marginal Jobs. 2005].  The other
+"la" data files are based on the 2000 US Census.
+
+usa - The continental United States, based on the 2000 US Census. Note 
+that the "wf" files are split into 49 separate files, one for each
+state and one for Washington, D.C. The wf file would be too large as a
+single file. When mpiflute does not find "usa-wf.dat", it looks for
+"usa-wf-?.dat", where "?" is the state FIPS code(s) of the population 
+on the processor.
+
+--------------------------
+3. Configuration
+
+A text file with one parameter per line is supplied as the command-line
+argument for flute to configure a simulation run (e.g., 
+"./flute config-file"). Each line should start with a parameter name and 
+the parameter value, separated by a single space.  Parameter values can
+be strings (can not include white space), integers, reals, or binary 
+(0 or 1).  Square brackets indicate the number of parameters required.
+Lines beginning with "#" are ignored. Defaults are generally ok, but most 
+configuration files should have a label, datafile, and R0 (or beta).  The 
+parameter names are as follows:
+
+label : string
+A name that is output in the summary file for the user's convenience (e.g., "simulation1"). With this value, the user can tag output files from specific simulation runs.
+
+datafile : (required) string
+The prefix for the input data file names (e.g., one, seattle, la, usa).
+
+logfile : integer
+Number that indicates how often, in days, output is written to the Log file. If 0, no Log file is generated. Default is 1 for daily output. 
+
+individualfile : binary
+Specifies if an "Individuals" file should be generated. The file will contain one row of simulation-specific data for each individual and can be very large. If 1, file is generated. The default is 0, no file generated. 
+
+beta : real
+Transmission parameter (sometime known as Ptrans). This value is multiplied by the inter-personal contact probability to determine the transmission probability between infected and susceptible persons. Default is 0.1.
+
+R0 : real
+Basic reproductive number, which is internally converted to beta. 
+
+seed : integer
+Random number seed.
+
+runlength : integer
+Number of days the simulation should run. Default is 180. 
+
+preexistingimmunitybyage : real[5]
+Vector of 5 values representing the fraction of individuals in each age group with pre-existing immunity. Those with pre-existing immunity are not susceptible.
+
+defaultVESbyage : real[5]
+Vector of 5 values representing the "VE_S" of individuals in each age group. This value reduces the susceptibility of the entire age group. A value of 0 indicates that the age group is fully susceptible and 1 indicates that it is completely immune. The default value is 0.
+
+prestrategy : string
+Vaccination strategy before the epidemic occurs. Can take one of the following four values, none, prevaccinate, or primeboostsame. prevaccinate vaccinates a fraction of the population (with 2 doses if required). The primeboostrandom option will give a percentage of the population one shot before the epidemic then may or may not boost those same persons after the epidemic has started. Persons vaccinated after the epidemic has started will be selected at random. In contrast, primeboostsame will boost the same persons after the epidemic that were primed before the epidemic. Default is none.
+
+reactivestrategy : string 
+Vaccination strategy for when the epidemic is detected. Can take one of the following three values, none, tract, or mass. The tract option will vaccinate persons in a specific tract once the threshold (i.e., responsethreshold variable) is met. The mass option will vaccinate all persons in all tracts once the threshold is met. Default is none.
+
+vaccinationfraction : real, scalar
+Fraction of people to vaccinate if a vaccination strategy is selected. Default is 0.7.
+
+vaccinepriorities : integer[13]
+A vector of 13 numbers, representing the vaccine priority for the  13 categories of individuals.  A value of 1 indicates highest priority, 2 is the next-highest priority, etc. 0 indicates that this category is not prioritized to get vaccine. Default is "1 1 1 1 1 1 1 1 1 1 1 1 1" (everyone has the same priority). Individuals of lower priority only get vaccine when those with higher do not need any. If a high priority individual is primed, lower priority persons can get vaccine until the high-priority person needs the boost. The categories, in order, are: essential workforce, pregnant women, family members of infants, high risk preschoolers, high risk school-age children, high risk young adults, high risk older adults, high risk elderly, all preschoolers, all school-age children, all young adults, all older adults, all elderly. For example, to have individuals of all ages get the same priority, we set all age-specific priorities to the same value: 0 0 0 0 0 0 0 0 1 1 1 1 1. to give adults lower priority we can do: 0 0 0 0 0 0 0 0 1 1 2 2 2.
+
+vaccinepriorities2, prioritychangetime - parameters for changing vaccinepriorities in the middle of an epidemic. These parameters might not be supported in future releases.
+
+antiviraldoses : integer, scalar
+Number of antiviral courses available at the beginning of the simulation. A single course is defined as 10 pills per person. Default is infinite.
+        
+vaccinedoses : integer[2]
+The vaccine ID followed by the number of vaccine doses available at the beginning of the simulation. A dose is defined as one shot per person. If the vaccine is a split-dose, (i.e., prime and boost), this variable must be twice the total number of doses. To specify 2,000,000 doses of vaccine 0, one would enter 0 2000000. Default is infinite.
+
+vaccineproduction : integer[runlength+1]
+Vaccine ID followed by the number of vaccine doses that become available each day during the response. For example, a vector of 1 100 300 500 600 ... would indicate 100 doses of vaccine 1 to become available of day 1 or the response, 300 on day 2, etc. for up to the number of days specified in runlength. The default is 0 (additional vaccine is not produced during the simulation).
+
+antiviraldosesdaily : integer
+Number of antiviral courses that can be delivered daily by available resources. Default is no restrictions, or unlimited ability to deliver.
+
+vaccinedosesdaily : integer
+Number of vaccinations that can be administered daily by available resources. Default is no restrictions (all available vaccine is administered each day).
+
+vaccinedata : integer, real[3], real[6], bool
+Total of 11 values indicating the vaccine id, vaccine efficacy and administration policies for each vaccine. The vaccine efficacy parameters (VE) should be between 0 (no efficacy) and 1 (complete efficacy). The administration policy values are the fraction of the age groups (infant, pre-school age, school-age, adult, elderly) and pregnant women who are restricted from getting the vaccine. The simulation randomly assigns this fraction of the individuals in these groups to be restricted. The default is 0 (none restricted), while 1 indicates that 100% of individuals in this class are restricted. Values must be entered in the following order:
+      integer, Numeric ID for the vaccine, starting from 0.
+      real, VE_S (the vaccine efficacy for susceptibility),
+      real, VE_I (the vaccine efficacy for infectiousness),
+      real, VE_P (the vaccine efficacy for illness given infection),
+      real, Fraction of infants (age <6months) restricted from getting the vaccine. 
+      real, Fraction of pre-school age children (ages 0-4) restricted from getting the vaccine. 
+      real, Fraction of school age children (ages 5-18) restricted from getting the vaccine. 
+      real, Fraction of young adults (ages 19-29) restricted from getting the vaccine. 
+      real, Fraction of older adults (ages 30-64) restricted from getting the vaccine. 
+      real, Fraction of elderly (ages 65+) restricted from getting the vaccine.
+      bool, Pregnant adults restricted from getting the vaccine. 
+An example of specifying multiple vaccines:
+vaccinedata 0 0.4 0.5 0.83 1 0.2 0.2 1 1 1 1
+vaccinedata 1 0.4 0.4 0.67 0 0 0 0 0 0 0
+Here vaccine 0 could be a live vaccine for children and vaccine 1 could be administered to anyone. Note that vaccine 0 has 0.2 for the child restrictions, which means that 20% of children (chosen at random) are not eligible.
+
+vaccinebuildup : integer, integer, real[29]
+Total of 31 values. The first value is the vaccine numeric ID, the second is the day that the boost should be given. The remaining 29 values are the vaccine efficacy over the 29 days after the vaccine is given.
+      integer, Numeric ID for the vaccine. First vaccine must start at 0. 
+      integer, Minimum number of days between the prime and boost ranging from 0 to 28. Default is 0, no boost. 
+      reals, 29 values describing the vaccine efficacy buildup, ranging from 0 to 1. The value on the last day should be 1. The default is a one-dose vaccine that reaches maximum efficacy in two weeks.
+
+vaccineefficacybyage : real[5]
+Vector of 5 values representing the relative vaccine efficacy for each age group. Age groups are, in order: pre-school (0-4 years), school age children (5-18 years), young adults (19-29 years), older adults (30-64 years), and elderly (65+ years). Values can range from 0=no efficacy to 1-full efficacy. The default is 1, full efficacy, for all age groups. For example, "1 1 1 1 0.6" would make vaccines only 60% as effective in the elderly as everyone else. The same settings are used for all vaccines. 
+
+AVEs : real
+Antiviral vaccine efficacy for susceptibility (VE_S). Default is 0.3. 
+
+AVEi : real
+Antiviral vaccine efficacy for infectiousness (VE_I). Default is 0.62 
+
+AVEp : real
+Antiviral vaccine efficacy for illness given infection (VE_P). Default is 0.6.
+
+responsethreshhold : real
+Fraction of the population ascertained that results in initiating reactive strategies. Reactive strategies include vaccinations, deploying antivirals, and non-pharmaceutical interventions like liberal leave. For example, 0.01 would set this trigger at 1% of the population. The default is 0.0 which initiates reactive strategies after the first person is ascertained. 
+
+responsedelay : integer
+Number of days to wait before initiating reactive strategies. A values of -1 would deploy reactive strategies on day 0, the first day of the simulation. this differs from the pre-strategy option because pre-vaccination assumes that you can vaccinate people early enough such that they have full protection on day 0. With a responsedelay of -1, they might get vaccine on day 0. Default is 1. 
+
+ascertainmentdelay : integer
+Number of days it takes medical personnel to ascertain a symptomatic individual. Default is 1 day. 
+
+ascertainmentfraction : real
+Fraction of all symptomatic individuals who will be ascertained. Default is 0.8. 
+
+essentialfraction: real
+Fraction of working-age adults that belong to the "essential workforce" and are priortized for receiving vaccine. Default is 0, no priority. The essential workforce is 6.9% of the employed population when there is a vaccine shortage and 10.8% if there is not a shortage. Default is 0, no essential workers prioritized to get vaccine.
+
+pregnantfraction : real[5]
+Fraction of people in each of the 5 age groups who are pregnant. Default is "0 0 0.02771 0.02069 0". 
+
+highriskfraction : real[5]
+Fraction of individuals in each of the 5 age groups who are at high risk of complications from influenza. for example, 0.089 0.089 0.212 0.212 0.0 would make 8.9% of children and 21.2% of adults under 65 years high risk. Default is 0, no high risk, for all age groups. 
+
+seedtract : integer[4]
+Seeds a single census tract with infected people. State, county, and tract FIPS followed by the number of people to infect. 
+
+seedinfected : integer
+Number of people to infect across the whole population. Default is 0, infect no people. 
+
+seedinfecteddaily : binary
+Indicates if infected people should be introduced into the population every day or just on the first day. A value of 1 will seed infected people every day, while 0 seeds infected only on day 0. Default is 0. 
+
+seedairports : integer
+Value between 0 and 10000 to indicate the number of passengers per 10000 per day to infect in airport counties. Default is 0, no passengers to be infected. 
+
+travel : binary
+enable short-term long-distance travel. Value of 1 enables travel, 0 indicates no travel. Default is 0, but should be set to 1 if simulating the continental US.
+
+antiviralpolicy : string
+Indicates which persons get antivirals. Can be one of four possible values, none, treatmentonly, HHTAP (household members all get drugs if one member is ascertained), or HHTAP100 (Special option for LA county: drugs can go to first 100 households that have a member ascertained). Default is none. 
+
+schoolclosurepolicy : string
+Identify which schools to close. Can take one of three possible values, none, all, or bytractandage. An epidemic is detected after the responsethreshold and responsedelay variable criteria are met. At this point, either no schools close (none), all schools close (all) or the schools in a single tract that correspond to a single age group (e.g., elementary, middle, or high) can be closed (bytractandage). Default is none.
+
+schoolclosuredays : integer
+Number of days to close schools ranging from 0 to the value of runlength. The default is 0, no school closure. A value larger than runlength would close the schools permanently.
+
+schoolopening : integer[56]
+School opening day for each state after the start of the simulation. Values of 0 or -1 indicate that the state's schools are open when the simulation starts, while other values indicate that the state's schools start after n days. The parameter takes 56 arguments, which correspond to the FIPS codes of the states. The values are for the states in the following order ("-" indicates that the value is not used):
+Alabama, Alaska, -, Arizona, Arkansas, California, -, Colorado, Connecticut, Delaware, District of Columbia, Florida, Georgia, -, Hawaii, Idaho, Illinois, Indiana, Iowa, Kansas, Kentucky, Louisiana, Maine, Maryland, Massachusetts, Michigan, Minnesota, Mississippi, Missouri, Montana, Nebraska, Nevada, New Hampshire, New Jersey, New Mexico, New York, North Carolina, North Dakota, Ohio, Oklahoma, Oregon, Pennsylvania, -, Rhode Island, South Carolina, South Dakota, Tennessee, Texas, Utah, Vermont, Virginia, -, Washington, West Virginia, Wisconsin, Wyoming
+
+isolation : real
+Voluntary isolation compliance probability. This is the probability that a sick person stays home voluntarily. Default is 0, no isolation. 
+
+quarantine : real
+Voluntary household quarantine compliance probability. This is the probability that the members of a household stay home if one of the family members gets sick. Default is 0, no quarantine. 
+
+liberalleave : real
+Liberal leave compliance probability. The probability that people will take off from work if they get sick. Default is 0, no liberal leave. 
+
+--------------------------
+4. Running flute
+
+flute and mpiflute use a file called "run-number" to specify the suffix 
+of the output files. The contents of the file is a single number 
+(e.g., 0) that is incremented each time flute (or mpiflute) is run.
+The run-number file is not included with the FluTE distribution and must 
+be created by the user. This file, and the desired data files, should be 
+in the same directory as the executable.
+
+To run flute:
+  ./flute config
+where config is the name of your configuration file.
+The program will print out its version number and any configuration
+errors to stdout.
+
+To run mpiflute on 32 processors using SLURM:
+  sbatch -pqueue -n 32 mpiflutescript.sh
+where "queue" is the processor queue and mpiflutescript.sh is a 
+two-line file:
+  #!/bin/sh
+  mpirun ./mpiflute config
+where config is the name of your configuration file.
+We suggest using mpiflute when necessary. The overhead from the
+inter-node communication will slow down the simulation. In mpiflute,
+counties are never split across nodes, so a simulation must cover
+more than one county for mpiflute to be useful.
+
+--------------------------
+5. Output files
+
+A simulation run will produce 1-4 output files, depending on 
+configuration parameters.  The filenames are a prefix (e.g., "Summary") 
+followed by a number, which is taken from the file run-number.  All 
+output files are in text format.
+
+Summary(n) - outputs the settings used for the simulation, final attack 
+rates, vaccines used, daily totals of symptomatic individuals.
+
+Log(n) - The number of symptomatics per tract each day (prevalence and 
+cumulative). Each line has: the day, a unique numeric tract id, the 
+number of people currently symptomatic in the 5 age groups, the number 
+of people who have ever been symptomatic in the 5 age groups. Can be an
+enormous file.
+
+Tracts(n) - a unique numeric tract id, the FIPS codes, and the 
+populations of the tracts by age. Also contains the number of people 
+who work in this tract (including residents). Comma-separated value 
+files with a header row. This is only output when Log files are output.
+
+Individuals(n) - Lists info on all people, with one line per person. 
+Comma-separated value files with a header row.  Can be an enormous file.
+
+--------------------------
+6. Sample configuration files
+
+config-minimal - A basic configuration file.  Simulates an epidemic with
+R_0=1.6 in a single community of 2000 people (using data from "one-*")
+with 10 initial infecteds.  Uses a random number seed of "1".
+
+config-laiv-vs-tiv - Vaccination of 50% of children enrolled in 
+school with two different vaccines in Los Angeles County.  Vaccine "0" 
+represents live, attenuated vaccine, which has VE_S=40%, VE_I=50%, and 
+VE_P=83% but is not administered to pre-school age children and people 
+with asthma (see Basta et al 2008, American Journal of Epidemiology).
+Vaccine "1" is a trivalent inactivated vaccine, which has VE_S=40%, 
+VE_I=40%, and VE_P=67%, and is given to the remainder of the 
+school children. The program distributes the vaccines in order, so 50%
+of school-age children are selected to be vaccinated, and the non-
+asthmatic ones are pre-vaccinated with Vaccine 0, and then the 
+remaining selected children are pre-vaccinated with Vaccine 1. If 
+Vaccine 0 had no restrictions on use, then all selected children would 
+receive it, and there would be no one left to receive Vaccine 1.
+The epidemic with R_0=1.8 is seeded with 9 new infected people each
+day.
+
+config-twodose - Reactive mass vaccination of 70% of people in Seattle.
+Vaccine requires two doses. The first confers 50% of the final efficacy
+after a two-week exponential buildup. The second, which must be given
+at least 21 days later, confers the final efficacy after a 7-day 
+buildup.
+
+config-highrisk - Pre-vaccination of 100% of high-risk individuals,
+essential workers, pregnant women, and people who live with infants.
+
+config-usa - Pre-vaccination of the US. Requires mpiflute (requires
+about 30 or more processors).
