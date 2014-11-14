@@ -40,7 +40,7 @@ extern const double fStopAntiviralTwoPills; // probability that individuals taki
 
 // cdf of duration for incubation period in days
 extern const double incubationcdf[3];
-extern const unsigned int incubationcdf32[3];
+//extern const unsigned int incubationcdf32[3];
 
 // viral load trajectories
 // number of subjects

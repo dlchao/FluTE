@@ -3,12 +3,12 @@
  * (C) Copyright 1986-92 Numerical Recipes Software */
 
 #include <math.h>
-#include "SFMT.h"
+#include "dSFMT.h"
 #include "bnldev.h"
 
 #define PI 3.141592654
 
-#define ran1(x) (genrand_real1())
+#define ran1(x) (dsfmt_gv_genrand_close_open())
 
 float gammln(float xx)
 {

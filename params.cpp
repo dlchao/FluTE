@@ -4,7 +4,7 @@
  *
  * Shufu Xu
  * 11.01.2006
- * Modified and recalibrated by Dennis Chao (Dec 2008)
+ * Modified and recalibrated by Dennis Chao (April 2010)
  */
 
 #include <climits>
@@ -12,26 +12,16 @@
 
 const double fAG0InfantFraction=0.09923; // fraction of those in age group 0 who are <6 months
 
-/* 
- * contact probabilities
- * cpw: workplace 
- * cps: school, 10 values for:
- *      none, high school, middle school, elementary (2), day care (4), play group
- * cpcm: community
- * cpnh: neighborhood
- * cpfc: family from children
- * cpfa: family from adults
- * cphcc: household cluster from children
- * cphca: household cluster from adults
- */
-const double cpw= 0.05;
-const double cps[10] = {0.0, 0.0252, 0.03, 0.0348, 0.0348, 0.12, 0.12, 0.12, 0.12, 0.28};
-const double cpcm[TAG] = {0.0000109, 0.0000326, 0.000087, 0.000087, 0.000174};
-const double cpnh[TAG] = {0.0000435, 0.0001305, 0.000348, 0.000348, 0.000696};
-const double cpfc[TAG] = {0.8, 0.8, 0.35, 0.35, 0.35};
-const double cpfa[TAG] = {0.25, 0.25, 0.4, 0.4, 0.4};
-const double cphcc[TAG] = {0.08, 0.08, 0.035, 0.035, 0.035};
-const double cphca[TAG] = {0.025, 0.025, 0.04, 0.04, 0.04};
+// contact probabilities
+const double cpw= 0.05; // workplace
+const double cps[10] = {0.0, 0.0252, 0.03, 0.0348, 0.0348, 0.12, 0.12, 0.12, 0.12, 0.28}; // school, 10 values for:
+//      none, high school, middle school, elementary (2), day care (4), play group
+const double cpcm[TAG] = {0.0000109, 0.0000326, 0.000087, 0.000087, 0.000174}; // community
+const double cpnh[TAG] = {0.0000435, 0.0001305, 0.000348, 0.000348, 0.000696}; // neighborhood
+const double cpfc[TAG] = {0.8, 0.8, 0.37, 0.37, 0.37};         // family from children
+const double cpfa[TAG] = {0.25, 0.25, 0.37, 0.37, 0.37};       // family from adults
+const double cphcc[TAG] = {0.08, 0.08, 0.037, 0.037, 0.037};   // household cluster from children
+const double cphca[TAG] = {0.025, 0.025, 0.037, 0.037, 0.037}; // household cluster from adults
 
 // withdraw probabilities
 const double withdrawprob[3][WITHDRAWDAYS] = {
@@ -49,7 +39,6 @@ const double fStopAntiviralTwoPills = 0.05; // probability that individuals taki
 
 // cdf of duration for incubation period in days
 const double incubationcdf[3] = {0.3, 0.8, 1.0};
-const unsigned int incubationcdf32[3] = {(unsigned int)(incubationcdf[0]*UINT_MAX), (unsigned int)(incubationcdf[1]*UINT_MAX), UINT_MAX};
 
 // viral load trajectories
 const double basevload[VLOADNSUB][VLOADNDAY] = {

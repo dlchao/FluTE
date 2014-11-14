@@ -1,6 +1,6 @@
 Instructions for FluTE, a stochastic influenza epidemic simulation model
 by Dennis Chao
-December 21, 2009
+April 26, 2010
 
 FluTE is an individual-based model that runs in discrete time, with two 
 time steps per simulation day, representing day and night. 
@@ -116,8 +116,11 @@ Random number seed.
 runlength : integer
 Number of days the simulation should run. Default is 180. 
 
+preexistingimmunitylevel: real
+Those with pre-existing immunity have susceptibility reduced by preexistingimmunitylevel.
+
 preexistingimmunitybyage : real[5]
-Vector of 5 values representing the fraction of individuals in each age group with pre-existing immunity. Those with pre-existing immunity are not susceptible.
+Vector of 5 values representing the fraction of individuals in each age group with pre-existing immunity. Those with pre-existing immunity have susceptibility reduced by preexistingimmunitylevel.
 
 defaultVESbyage : real[5]
 Vector of 5 values representing the "VE_S" of individuals in each age group. This value reduces the susceptibility of the entire age group. A value of 0 indicates that the age group is fully susceptible and 1 indicates that it is completely immune. The default value is 0.

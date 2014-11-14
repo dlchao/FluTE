@@ -40,8 +40,9 @@ EpiModelParameters::EpiModelParameters(char *configname) {
     for (int j=0; j<=VACCEFFLENGTH; j++)
       vaccinedata[i].vacceff[j] = vacceff[j];
   }
+  fPreexistingImmunityLevel = 1.0;
   for (int i=0; i<TAG; i++) {
-    fPreexistingImmunityByAge[i] = 0.0;
+    fPreexistingImmunityFraction[i] = 0.0;
     fBaselineVESByAge[i] = 0.0;
     fPregnantFraction[i] = 0.0;
     fHighRiskFraction[i] = 0.0;
@@ -285,7 +286,7 @@ bool EpiModelParameters::readConfigFile(const char *configname) {
 	  iss>>bIndividualsFile;
 	} else if (param.compare("R0")==0) {
 	  if (read_config_double(R0, iss, "R0", 0.0, 1000000.0)) {
-	    beta = (R0-0.068)/5.592;
+	    beta = (R0-0.1099)/5.2988;
 	  }
 	} else if (param.compare("seasonality")==0) {
 	    for (int i=0; i<MAXRUNLENGTH; i++) {
@@ -358,6 +359,9 @@ bool EpiModelParameters::readConfigFile(const char *configname) {
 	    int nID;
 	    read_config_int(nID, iss, "vaccine ID");
 	    if (nID>=NUMVACCINES) {
+	      #ifdef PARALLEL
+	      if (rank==0)
+	      #endif
 	      cerr << "ERROR: " << nID << " is not a valid vaccine ID" << endl;
 	      exit(-1);
 	    }
@@ -371,6 +375,9 @@ bool EpiModelParameters::readConfigFile(const char *configname) {
 	    int nID;
 	    read_config_int(nID, iss, "vaccine ID");
 	    if (nID>=NUMVACCINES) {
+	      #ifdef PARALLEL
+	      if (rank==0)
+	      #endif
 	      cerr << "ERROR: " << nID << " is not a valid vaccine ID" << endl;
 	      exit(-1);
 	    }
@@ -385,14 +392,20 @@ bool EpiModelParameters::readConfigFile(const char *configname) {
 	    for (int i=0; i<TAG; i++)
 	      read_config_double(vaccinedata[nID].fAge[i], iss, "bad for age group i", 0.0, 1.0);
 	    if (!read_config_bool(vaccinedata[nID].bPregnant, iss, "bad for pregnant women")) {
-	      cerr << "ERROR: error in vaccinedata values for vaccine " << nID << endl;
 	      
+	      #ifdef PARALLEL
+	      if (rank==0)
+	      #endif
+	      cerr << "ERROR: error in vaccinedata values for vaccine " << nID << endl;	      
 	      exit(-1);
 	    }
 	} else if (param.compare("vaccineproduction")==0) {
 	    int nID;
 	    read_config_int(nID, iss, "vaccine ID");
 	    if (nID>=NUMVACCINES) {
+	      #ifdef PARALLEL
+	      if (rank==0)
+	      #endif
 	      cerr << "ERROR: " << nID << " is not a valid vaccine ID" << endl;
 	      exit(-1);
 	    }
@@ -488,12 +501,14 @@ bool EpiModelParameters::readConfigFile(const char *configname) {
 	    read_config_double(fQuarantineCompliance, iss, "quarantine compliance probability", 0.0, 1.0);
 	} else if (param.compare("liberalleave")==0) {
 	    read_config_double(fLiberalLeaveCompliance, iss, "liberal leave compliance probability", 0.0, 1.0);
+	} else if (param.compare("preexistingimmunitylevel")==0) {
+	    read_config_double(fPreexistingImmunityLevel, iss, "protection for those with pre-existing immunity", 0.0, 1.0);
 	} else if (param.compare("preexistingimmunitybyage")==0) {
-	  read_config_double(fPreexistingImmunityByAge[0], iss, "fraction of pre-schoolers with pre-existing immunity", 0.0, 1.0);
-	  read_config_double(fPreexistingImmunityByAge[1], iss, "fraction of school-age children with pre-existing immunity", 0.0, 1.0);
-	  read_config_double(fPreexistingImmunityByAge[2], iss, "fraction of young adults with pre-existing immunity", 0.0, 1.0);
-	  read_config_double(fPreexistingImmunityByAge[3], iss, "fraction of older adults with pre-existing immunity", 0.0, 1.0);
-	  read_config_double(fPreexistingImmunityByAge[4], iss, "fraction of elderly with pre-existing immunity", 0.0, 1.0);
+	  read_config_double(fPreexistingImmunityFraction[0], iss, "fraction of pre-schoolers with pre-existing immunity", 0.0, 1.0);
+	  read_config_double(fPreexistingImmunityFraction[1], iss, "fraction of school-age children with pre-existing immunity", 0.0, 1.0);
+	  read_config_double(fPreexistingImmunityFraction[2], iss, "fraction of young adults with pre-existing immunity", 0.0, 1.0);
+	  read_config_double(fPreexistingImmunityFraction[3], iss, "fraction of older adults with pre-existing immunity", 0.0, 1.0);
+	  read_config_double(fPreexistingImmunityFraction[4], iss, "fraction of elderly with pre-existing immunity", 0.0, 1.0);
 	} else if (param.compare("defaultVESbyage")==0) {
 	  read_config_double(fBaselineVESByAge[0], iss, "default VES for pre-schoolers", 0.0, 1.0);
 	  read_config_double(fBaselineVESByAge[1], iss, "default VES for school-age children", 0.0, 1.0);

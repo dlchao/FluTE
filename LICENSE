@@ -16,17 +16,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Some of the code is from other sources and not covered by the GPL:
 
-The code to generate families based on the 2000 US Census was taken
-from EpiCast.  This code was probably originally written by Azhar Nizam.
-This part of the code is not necessarily covered by the GPL, but it 
-should be attributed if used by other projects.
-
-FluTE uses SFMT ver. 1.3.3, the SIMD oriented Fast Mersenne Twister (SFMT).  
-Copyright (c) 2006,2007 Mutsuo Saito, Makoto Matsumoto and Hiroshima
+FluTE uses dSFMT ver. 2.1, the double precision SIMD-oriented Fast Mersenne 
+Twister (dSFMT).  
+Copyright (c) 2007,2008 Mutsuo Saito, Makoto Matsumoto and Hiroshima
 University. All rights reserved.  See the license for this code (available
 on the internet) for further information.
 
 FluTE uses the bnldev and gammln functions (both in bnldev.c) from 
 Numerical Recipes in C.  
 Copyright 1988-1992 by Cambridge University Press.
-

@@ -1,10 +1,9 @@
 /* class EpiModel
  *
- * This class models the flu transmission among people in an 
- * artificial population with fine structures that were proposed 
- * in a paper of Ira M. Longini, et al published on Science in 2004.
- * This model is one step further with those structures since it 
- * incorporates census information on the modeled population.
+ * This class models influenza transmission among people in a
+ * synthetic population as described in the paper "FluTE, a publicly 
+ * available stochastic influenza epidemic simulation model," 
+ * available at http://www.ploscompbiol.org/doi/pcbi.1000656
  *
  * Dennis Chao and Shufu Xu
  * 12/2009
@@ -21,6 +20,9 @@
 #include <map>
 #include <assert.h>
 #include "params.h"
+extern "C" {
+  #include "dSFMT.h"   // for random number generation
+}
 
 using namespace std;
 
@@ -180,7 +182,7 @@ struct Person {
   unsigned int nDayTract;        // ID of daytime (work, school) tract
   unsigned int nDayComm;         // ID of daytime (work, school) community
   int nWorkplace;	// work or school group
-  double fBaselineVES; // baseline VES before vaccination
+  double fBaselineVES;    // baseline VES before vaccination
   unsigned int nHomeComm;        // ID of home community
 
   char sourcetype;      // in which setting infection took place
@@ -456,7 +458,9 @@ class EpiModel {
   unsigned int *tractToFIPStract;  // census tract FIPS
   unsigned int *tractToFIPScounty; // county FIPS
   unsigned int *tractToFIPSstate;  // state FIPS
-  unsigned int withdrawcdf32[3][WITHDRAWDAYS];  // unsigned int version of withdraw to home probabilities cdf
+  double withdrawcdf[3][WITHDRAWDAYS];  // withdraw to home probabilities cdf
+
+  dsfmt_t dsfmt;                   // random number generator
 
   // run parameters
   string szLabel;       // name of this run
@@ -473,8 +477,10 @@ class EpiModel {
   bool bSeedDaily;             // seed infected people every day or just once?
   int  nSeedAirports;          // seed n/10000 infected people at major airports
   bool bTravel;                // is short-term travel allowed?
-  double fPreexistingImmunityByAge[TAG];  // fraction with pre-existing (sterilizing) immunity by age group
-  double fBaselineVESByAge[TAG];  // default VES by age group
+  double fPreexistingImmunityFraction[TAG];  // fraction with pre-existing (sterilizing) immunity by age group
+  double fPreexistingImmunityLevel; // protection against infection for those with pre-existing immunity (like VES)
+  double fBaselineVESByAge[TAG];    // default VES by age group
+
   int nSchoolOpeningDays[56];  // day of the simulation on which the state's schools open. Values of <=0 indicate that the schools are open from the first day. Array indices correspond to the FIPS code of the state-1, starting with Alabama ("01").
 
   // logging parameters

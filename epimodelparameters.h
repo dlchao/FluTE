@@ -38,7 +38,8 @@ class EpiModelParameters {
   unsigned int getSeedInfectedCountyFIPS() { return nSeedInfectedCountyFIPS; }
   unsigned int getSeedInfectedStateFIPS() { return nSeedInfectedStateFIPS; }
   int getSeedInfectedNumber() { return nSeedInfectedNumber; }
-  double *getPreexistingImmunityByAge() { return fPreexistingImmunityByAge; }
+  double *getPreexistingImmunityByAge() { return fPreexistingImmunityFraction; }
+  double getPreexistingImmunityLevel() { return fPreexistingImmunityLevel; }
   double *getBaselineVESByAge() { return fBaselineVESByAge; }
   int *getSchoolOpeningDays() { return nSchoolOpeningDays; }
 
@@ -94,8 +95,9 @@ class EpiModelParameters {
   double beta;    // transmisison parameter
   double R0;      // R_0 (used to derive beta)
   double seasonality[MAXRUNLENGTH];      // multiplier of beta
-  double fPreexistingImmunityByAge[TAG];  // fraction with pre-existing (sterilizing) immunity by age group
-  double fBaselineVESByAge[TAG];  // default VES by age group
+  double fPreexistingImmunityFraction[TAG];  // fraction with pre-existing (sterilizing) immunity by age group
+  double fPreexistingImmunityLevel; // protection against infection for those with pre-existing immunity (like VES)
+  double fBaselineVESByAge[TAG];    // default VES by age group
 
   // logging parameters
   int nLogFileInterval;// output to log file every n days (set to 0 for no log)

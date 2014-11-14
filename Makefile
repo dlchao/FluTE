@@ -8,11 +8,11 @@ MPICPP      = mpicxx
 MPICCLINKER = mpicxx
 MAKE     = make --no-print-directory
 SHELL    = /bin/sh
-CFLAGS		= -Wall -pedantic
+CFLAGS		= -Wall -pedantic -DDSFMT_MEXP=19937 -msse2 -DHAVE_SSE2 
 OPTI            = -O3 -march=native
 #OPTI = -pg # for profiling
 #the following two lines are for compiling mpiflute with OpenMPI
-MPICFLAGS	= -Wall -I/app/openmpi/include -I/app/openmpi/include/openmpi/ompi -pthread
+MPICFLAGS	= -Wall -I/app/openmpi/include -I/app/openmpi/include/openmpi/ompi -pthread -DDSFMT_MEXP=19937 
 MPILDFLAGS	= -L. -L/app/openmpi/lib -lmpi -lopen-rte -lopen-pal --export-dynamic -lm -lutil -lnsl -ldl -Wl
 #uncomment the following two lines for compiling mpiflute with MPICH2 
 #MPICFLAGS       = -Wall -I/opt/mpich2/include  -pthread
@@ -20,8 +20,8 @@ MPILDFLAGS	= -L. -L/app/openmpi/lib -lmpi -lopen-rte -lopen-pal --export-dynamic
 LDFLAGS	= -lm
 INCLUDES	= 
 LIBS	= 
-OBJS	= flute.o epimodel.o params.o epimodelparameters.o SFMT19937.o bnldev.o
-MPIOBJS	= mpiflute.o mpiepimodel.o mpiparams.o mpiepimodelparameters.o mpiSFMT19937.o mpibnldev.o
+OBJS	= flute.o epimodel.o params.o epimodelparameters.o dSFMT19937.o bnldev.o
+MPIOBJS	= mpiflute.o mpiepimodel.o mpiparams.o mpiepimodelparameters.o mpidSFMT19937.o mpibnldev.o
 DEFINES = -DVERBOSE
 MPIDEFINES = -DPARALLEL
 
@@ -31,7 +31,7 @@ flute: $(OBJS) Makefile
 	$(CCLINKER) -o flute $(OBJS) $(OPTI) $(LDFLAGS) $(LIBS) $(DEFINES)
 
 R0flute: $(OBJS) Makefile R0model.o R0model.h
-	$(CCLINKER) -o R0flute R0model.o epimodel.o params.o epimodelparameters.o SFMT19937.o bnldev.o $(LDFLAGS) $(LIBS) $(DEFINES)
+	$(CCLINKER) -o R0flute R0model.o epimodel.o params.o epimodelparameters.o dSFMT19937.o bnldev.o $(LDFLAGS) $(LIBS) $(DEFINES)
 
 mpiflute: $(MPIOBJS) Makefile
 	$(MPICCLINKER) -o mpiflute $(MPIOBJS) $(MPILDFLAGS) $(LIBS)
@@ -51,11 +51,11 @@ mpiparams.o: params.cpp params.h Makefile
 mpiepimodelparameters.o: epimodelparameters.cpp epimodelparameters.h epimodel.h Makefile
 	$(MPICPP) $(MPICFLAGS) $(OPTI) $(INCLUDES) $(DEFINES) $(MPIDEFINES) -c epimodelparameters.cpp -o mpiepimodelparameters.o
 
-mpiSFMT19937.o: SFMT.c SFMT.h SFMT-params19937.h Makefile
-	$(MPICC) $(MPICFLAGS) $(OPTI) $(INCLUDES) $(DEFINES) $(MPIDEFINES) -std=c99 --param max-inline-insns-single=1800 -fno-strict-aliasing -Wmissing-prototypes -msse2 -DHAVE_SSE2 -DMEXP=19937 -DNDEBUG -c SFMT.c -o mpiSFMT19937.o
+mpidSFMT19937.o: dSFMT.c dSFMT.h dSFMT-params19937.h Makefile
+	$(MPICC) $(MPICFLAGS) $(OPTI) $(INCLUDES) $(DEFINES) $(MPIDEFINES) -std=c99 --param max-inline-insns-single=1800 -fno-strict-aliasing -Wmissing-prototypes -msse2 -DHAVE_SSE2 -DNDEBUG -c dSFMT.c -o mpidSFMT19937.o
 
-SFMT19937.o: SFMT.c SFMT.h SFMT-params19937.h Makefile
-	$(CC) $(CFLAGS) $(OPTI)  -std=c99 --param max-inline-insns-single=1800 -fno-strict-aliasing -Wmissing-prototypes -msse2 -DHAVE_SSE2 -DMEXP=19937 -DNDEBUG $(INCLUDES) $(DEFINES) -c SFMT.c -o SFMT19937.o
+dSFMT19937.o: dSFMT.c dSFMT.h dSFMT-params19937.h Makefile
+	$(CC) $(CFLAGS) $(OPTI)  -std=c99 --param max-inline-insns-single=1800 -fno-strict-aliasing -Wmissing-prototypes -msse2 -DHAVE_SSE2 -DNDEBUG $(INCLUDES) $(DEFINES) -c dSFMT.c -o dSFMT19937.o
 
 bnldev.o: bnldev.c bnldev.h Makefile
 	$(CC) $(CFLAGS) $(OPTI) $(INCLUDES) $(DEFINES) -c bnldev.c -o bnldev.o

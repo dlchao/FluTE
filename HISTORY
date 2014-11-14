@@ -160,3 +160,17 @@ playgroups to transmit to family members.
 Version 1.14 - March 22, 2010
 
 Fixed some error and warning messages in mpiflute.
+
+*********************************************************
+
+Version 1.15 - April 26, 2010
+
+Added parameter for the degree of protection for those with
+pre-existing immunity (had previously assumed 100%).
+
+Changed random number generator to dSFMT to be more efficient for 
+generating doubles.
+
+Used Mark Robien's suggestion to base household composition on PUMS
+data instead of the legacy code from EpiCast.  Had to recalibrate
+because of the new household size distribution.

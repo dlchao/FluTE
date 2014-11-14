@@ -6,13 +6,16 @@
 #include <mpi.h>
 #endif
 extern "C" {
-  #include "SFMT.h"
+  #include "dSFMT.h"
 }
 #include "epimodel.h"
 #include "epimodelparameters.h"
 #include "R0model.h"
 
 using namespace std;
+
+#define get_rand_double dsfmt_genrand_close_open(&dsfmt)
+#define get_rand_uint32 dsfmt_genrand_uint32(&dsfmt)
 
 R0Model::R0Model(EpiModelParameters &params) : EpiModel(params) {
   nNumInfected=0;
@@ -38,8 +41,9 @@ void R0Model::infect(Person& p) {
  * Code to run at the end of init (and before run)
  */
 void R0Model::prerun(void) {
+  EpiModel::prerun();
   // infect one person
-  long pid = gen_rand32() % pvec.size();
+  long pid = get_rand_uint32 % pvec.size();
   infect(pvec[pid]);
 }
 
@@ -47,8 +51,7 @@ void R0Model::summary(void) {
   *sumfile << "R0 summary" << endl;
   *sumfile << "Population: " << szBaseName << endl;
   *sumfile << "beta: " << beta << endl;
-  *sumfile << "Seed: " << seeddisp << endl;
-  //  *sumfile << "Run: " << nr << endl;
+  *sumfile << "Random number generator seed: " << seeddisp << endl;
   *sumfile << "Secondary infections: " << (nNumInfected-1) << endl;
 
   int familyages[5];
