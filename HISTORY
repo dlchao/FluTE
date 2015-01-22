@@ -174,3 +174,9 @@ generating doubles.
 Used Mark Robien's suggestion to base household composition on PUMS
 data instead of the legacy code from EpiCast.  Had to recalibrate
 because of the new household size distribution.
+
+*********************************************************
+
+Version 1.16 - January, 2015
+
+Updated version of dSFMT.

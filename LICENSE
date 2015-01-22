@@ -1,5 +1,5 @@
 FluTE was developed by Dennis Chao at the Fred Hutchinson Cancer 
-Research Center. Copyright 2009.
+Research Center. Copyright 2015.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,9 +16,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Some of the code is from other sources and not covered by the GPL:
 
-FluTE uses dSFMT ver. 2.1, the double precision SIMD-oriented Fast Mersenne 
+FluTE uses dSFMT ver. 2.2.3, the double precision SIMD-oriented Fast Mersenne 
 Twister (dSFMT).  
-Copyright (c) 2007,2008 Mutsuo Saito, Makoto Matsumoto and Hiroshima
+Copyright (c) 2011,2002 Mutsuo Saito, Makoto Matsumoto and Hiroshima
 University. All rights reserved.  See the license for this code (available
 on the internet) for further information.
 

@@ -1,5 +1,6 @@
-/** 
- * @file dSFMT.h 
+#pragma once
+/**
+ * @file dSFMT.h
  *
  * @brief double precision SIMD oriented Fast Mersenne Twister(dSFMT)
  * pseudorandom number generator based on IEEE 754 format.
@@ -9,6 +10,9 @@
  *
  * Copyright (C) 2007, 2008 Mutsuo Saito, Makoto Matsumoto and
  * Hiroshima University. All rights reserved.
+ * Copyright (C) 2012 Mutsuo Saito, Makoto Matsumoto,
+ * Hiroshima University and The University of Tokyo.
+ * All rights reserved.
  *
  * The new BSD License is applied to this software.
  * see LICENSE.txt
@@ -18,7 +22,7 @@
  * and you have to define PRIu64 and PRIx64 in this file as follows:
  * @verbatim
  typedef unsigned int uint32_t
- typedef unsigned long long uint64_t  
+ typedef unsigned long long uint64_t
  #define PRIu64 "llu"
  #define PRIx64 "llx"
 @endverbatim
@@ -30,6 +34,9 @@
 
 #ifndef DSFMT_H
 #define DSFMT_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include <stdio.h>
 #include <assert.h>
@@ -43,7 +50,7 @@
 /*-----------------
   BASIC DEFINITIONS
   -----------------*/
-/* Mersenne Exponent. The period of the sequence 
+/* Mersenne Exponent. The period of the sequence
  *  is a multiple of 2^DSFMT_MEXP-1.
  * #define DSFMT_MEXP 19937 */
 /** DSFMT generator has an internal state array of 128-bit integers,
@@ -89,15 +96,17 @@
 #  if !defined(DSFMT_UINT32_DEFINED) && !defined(SFMT_UINT32_DEFINED)
 typedef unsigned int uint32_t;
 typedef unsigned __int64 uint64_t;
-#    define UINT64_C(v) (v ## ui64)
+#    ifndef UINT64_C
+#      define UINT64_C(v) (v ## ui64)
+#    endif
 #    define DSFMT_UINT32_DEFINED
-#    if !defined(inline)
+#    if !defined(inline) && !defined(__cplusplus)
 #      define inline __inline
 #    endif
 #  endif
 #else
 #  include <inttypes.h>
-#  if !defined(inline)
+#  if !defined(inline) && !defined(__cplusplus)
 #    if defined(__GNUC__)
 #      define inline __inline__
 #    else
@@ -117,7 +126,7 @@ typedef unsigned __int64 uint64_t;
 #endif
 
 #ifndef UINT64_C
-#  define UINT64_C(v) (v ## ULL) 
+#  define UINT64_C(v) (v ## ULL)
 #endif
 
 /*------------------------------------------
@@ -177,7 +186,7 @@ void dsfmt_fill_array_open_open(dsfmt_t *dsfmt, double array[], int size);
 void dsfmt_fill_array_close1_open2(dsfmt_t *dsfmt, double array[], int size);
 void dsfmt_chk_init_gen_rand(dsfmt_t *dsfmt, uint32_t seed, int mexp);
 void dsfmt_chk_init_by_array(dsfmt_t *dsfmt, uint32_t init_key[],
-			     int key_length, int mexp);
+                             int key_length, int mexp);
 const char *dsfmt_get_idstring(void);
 int dsfmt_get_min_array_size(void);
 
@@ -215,11 +224,11 @@ DSFMT_PRE_INLINE void dsfmt_gv_fill_array_close1_open2(double array[], int size)
     DSFMT_PST_INLINE;
 DSFMT_PRE_INLINE void dsfmt_gv_init_gen_rand(uint32_t seed) DSFMT_PST_INLINE;
 DSFMT_PRE_INLINE void dsfmt_gv_init_by_array(uint32_t init_key[],
-					     int key_length) DSFMT_PST_INLINE;
+                                             int key_length) DSFMT_PST_INLINE;
 DSFMT_PRE_INLINE void dsfmt_init_gen_rand(dsfmt_t *dsfmt, uint32_t seed)
     DSFMT_PST_INLINE;
 DSFMT_PRE_INLINE void dsfmt_init_by_array(dsfmt_t *dsfmt, uint32_t init_key[],
-					  int key_length) DSFMT_PST_INLINE;
+                                          int key_length) DSFMT_PST_INLINE;
 
 /**
  * This function generates and returns unsigned 32-bit integer.
@@ -234,8 +243,8 @@ inline static uint32_t dsfmt_genrand_uint32(dsfmt_t *dsfmt) {
     uint64_t *psfmt64 = &dsfmt->status[0].u[0];
 
     if (dsfmt->idx >= DSFMT_N64) {
-	dsfmt_gen_rand_all(dsfmt);
-	dsfmt->idx = 0;
+        dsfmt_gen_rand_all(dsfmt);
+        dsfmt->idx = 0;
     }
     r = psfmt64[dsfmt->idx++] & 0xffffffffU;
     return r;
@@ -255,8 +264,8 @@ inline static double dsfmt_genrand_close1_open2(dsfmt_t *dsfmt) {
     double *psfmt64 = &dsfmt->status[0].d[0];
 
     if (dsfmt->idx >= DSFMT_N64) {
-	dsfmt_gen_rand_all(dsfmt);
-	dsfmt->idx = 0;
+        dsfmt_gen_rand_all(dsfmt);
+        dsfmt->idx = 0;
     }
     r = psfmt64[dsfmt->idx++];
     return r;
@@ -311,7 +320,7 @@ inline static double dsfmt_gv_genrand_close_open(void) {
  * This function generates and returns double precision pseudorandom
  * number which distributes uniformly in the range (0, 1].
  * dsfmt_init_gen_rand() or dsfmt_init_by_array() must be called
- * before this function. 
+ * before this function.
  * @param dsfmt dsfmt internal state date
  * @return double precision floating point pseudorandom number
  */
@@ -341,13 +350,13 @@ inline static double dsfmt_gv_genrand_open_close(void) {
 inline static double dsfmt_genrand_open_open(dsfmt_t *dsfmt) {
     double *dsfmt64 = &dsfmt->status[0].d[0];
     union {
-	double d;
-	uint64_t u;
+        double d;
+        uint64_t u;
     } r;
 
     if (dsfmt->idx >= DSFMT_N64) {
-	dsfmt_gen_rand_all(dsfmt);
-	dsfmt->idx = 0;
+        dsfmt_gen_rand_all(dsfmt);
+        dsfmt->idx = 0;
     }
     r.d = dsfmt64[dsfmt->idx++];
     r.u |= 1;
@@ -456,7 +465,7 @@ inline static void dsfmt_gv_init_gen_rand(uint32_t seed) {
  * @param key_length the length of init_key.
  */
 inline static void dsfmt_init_by_array(dsfmt_t *dsfmt, uint32_t init_key[],
-				       int key_length) {
+                                       int key_length) {
     dsfmt_chk_init_by_array(dsfmt, init_key, key_length, DSFMT_MEXP);
 }
 
@@ -619,5 +628,9 @@ inline static void fill_array_close1_open2(double array[], int size) {
     dsfmt_gv_fill_array_close1_open2(array, size);
 }
 #endif /* DSFMT_DO_NOT_USE_OLD_NAMES */
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* DSFMT_H */

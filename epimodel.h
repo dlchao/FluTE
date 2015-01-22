@@ -58,11 +58,11 @@ enum vaccinePriorityPolicy {
   PRIORITY_HR2=5,          // high risk young adults
   PRIORITY_HR3=6,          // high risk older adults
   PRIORITY_HR4=7,          // high risk elderly
-  PRIORITY_0=8,            // high risk preschoolers
-  PRIORITY_1=9,            // high risk school-age children
-  PRIORITY_2=10,           // high risk young adults
-  PRIORITY_3=11,           // high risk older adults
-  PRIORITY_4=12,           // high risk elderly
+  PRIORITY_0=8,            // low risk preschoolers
+  PRIORITY_1=9,            // low risk school-age children
+  PRIORITY_2=10,           // low risk young adults
+  PRIORITY_3=11,           // low risk older adults
+  PRIORITY_4=12,           // low risk elderly
   PRIORITY_LAST=13
 };
 

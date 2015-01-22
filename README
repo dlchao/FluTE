@@ -1,6 +1,6 @@
 Instructions for FluTE, a stochastic influenza epidemic simulation model
 by Dennis Chao
-April 26, 2010
+January 2015
 
 FluTE is an individual-based model that runs in discrete time, with two 
 time steps per simulation day, representing day and night. 
