@@ -13,11 +13,11 @@
 using namespace std;
 
 #ifdef PARALLEL
-EpiModelParameters::EpiModelParameters(int r, int s, char *configname) {
+EpiModelParameters::EpiModelParameters(int r, int s, const char *configname) {
   rank = r;
   size = s;
 #else
-EpiModelParameters::EpiModelParameters(char *configname) {
+EpiModelParameters::EpiModelParameters(const char *configname) {
 #endif
   const double vacceff[VACCEFFLENGTH+1] = {0,0.001,0.005,0.015,0.033,0.061,0.1,0.152,0.218,0.301,0.401,0.519,0.658,0.818,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
