@@ -11,9 +11,9 @@ using namespace std;
 class EpiModelParameters {
  public:
 #ifdef PARALLEL
-  EpiModelParameters(int, int, char *configname);
+  EpiModelParameters(int, int, const char *configname);
 #else
-  EpiModelParameters(char *configname);
+  EpiModelParameters(const char *configname);
 #endif
   ~EpiModelParameters() { }
 
