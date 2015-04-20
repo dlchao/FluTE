@@ -104,6 +104,18 @@ Number that indicates how often, in days, output is written to the Log file. If 
 individualfile : binary
 Specifies if an "Individuals" file should be generated. The file will contain one row of simulation-specific data for each individual and can be very large. If 1, file is generated. The default is 0, no file generated. 
 
+summaryfilename : string
+Specify a name for the "Summary" file. The default name is "Summary(n)", where (n) is the number in the run-number file.
+
+logfilename : string
+Specify a name for the "Log" file. The default name is "Log(n)", where (n) is the number in the run-number file.
+
+tractfilename : string
+Specify a name for the "Tracts" file. The default name is "Tracts(n)", where (n) is the number in the run-number file.
+
+individualfilename : string
+Specify a name for the "Individuals" file. The default name is "Individuals(n)", where (n) is the number in the run-number file.
+
 beta : real
 Transmission parameter (sometime known as Ptrans). This value is multiplied by the inter-personal contact probability to determine the transmission probability between infected and susceptible persons. Default is 0.1.
 
@@ -285,9 +297,10 @@ The continental US can be run with up to 44 nodes.
 5. Output files
 
 A simulation run will produce 1-4 output files, depending on 
-configuration parameters.  The filenames are a prefix (e.g., "Summary") 
-followed by a number, which is taken from the file run-number.  All 
-output files are in text format.
+configuration parameters. The filenames are a prefix (e.g., "Summary") 
+followed by a number, which is taken from the file run-number, unless
+the filenames are specified on the command line.
+All output files are in ascii text format.
 
 Summary(n) - outputs the settings used for the simulation, final attack 
 rates, vaccines used, daily totals of symptomatic individuals.

@@ -100,32 +100,41 @@ bool EpiModelParameters::createOutputFiles(void) {
 #endif
     nrfile.open("run-number", ios_base::in|ios_base::out);
     if(!nrfile) {
-      cerr << "ERROR: 'run-number' missing in the simulator directory." << endl;
-      cerr << "Create a file called 'run-number' with the number 0 on the first line, then try again." << endl;
-      return false;
+      cerr << "WARNING: 'run-number' missing in the simulator directory. Assuming run-number is '0'." << endl;
+      //      cerr << "Create a file called 'run-number' with the number 0 on the first line, then try again." << endl;
+      //      return false;
+      nr = 0;
+    } else {
+      nrfile >> nr;
+      nrfile.seekg(0);
+      nrfile << (nr+1) << endl;
+      nrfile.close();
     }
-    nrfile >> nr;
-    nrfile.seekg(0);
-    nrfile << (nr+1) << endl;
-    nrfile.close();
     if (nLogFileInterval>0) {
 #ifdef PARALLEL
       if (!rank) {
 #else
 	{
 #endif
-	ostringstream oss;
-	oss << "Log" << nr;
-	EpiModelParameters::logFile.open(oss.str().c_str());
+	  if (szLogFileName.length()==0) {
+	    ostringstream oss;
+	    oss << "Log" << nr;
+	    szLogFileName = oss.str();
+	  }
+	EpiModelParameters::logFile.open(szLogFileName.c_str());
 	if(EpiModelParameters::logFile.fail()) {
-	  cerr << "ERROR: Log file '" << oss.str() << "' cannot be open for writing." << endl;
+	  cerr << "ERROR: Log file '" << szLogFileName << "' cannot be open for writing." << endl;
 	  return false;
 	}
-	ostringstream osst;
-	osst << "Tracts" << nr;
-	EpiModelParameters::tractFile.open(osst.str().c_str());
+	if (szTractFileName.length()==0) {
+	  ostringstream oss;
+	  oss << "Tracts" << nr;
+	  szTractFileName = oss.str();
+	}
+	
+	EpiModelParameters::tractFile.open(szTractFileName.c_str());
 	if(EpiModelParameters::tractFile.fail()) {
-	  cerr << "ERROR: Tract file '" << oss.str() << "' cannot be open for reading." << endl;
+	  cerr << "ERROR: Tract file '" << szTractFileName << "' cannot be open for reading." << endl;
 	  return false;
 	}
       }
@@ -140,11 +149,14 @@ bool EpiModelParameters::createOutputFiles(void) {
 #else
   {
 #endif
-    ostringstream oss;
-    oss << "Summary" << nr;
-    summaryFile.open(oss.str().c_str());
+    if (szSummaryFileName.length()==0) {
+      ostringstream oss;
+      oss << "Summary" << nr;
+      szSummaryFileName = oss.str();
+    }
+    summaryFile.open(szSummaryFileName.c_str());
     if(summaryFile.fail()) {
-      cerr << "ERROR: Summary file '" << oss.str() << "' cannot be open for writing." << endl;
+      cerr << "ERROR: Summary file '" << szSummaryFileName << "' cannot be open for writing." << endl;
       return false;
     }
   }
@@ -154,11 +166,14 @@ bool EpiModelParameters::createOutputFiles(void) {
 #else
   if (bIndividualsFile) {
 #endif
-    ostringstream oss;
-    oss << "Individuals" << nr;
-    EpiModelParameters::individualsFile.open(oss.str().c_str());
+    if (szIndividualFileName.length()==0) {
+      ostringstream oss;
+      oss << "Individuals" << nr;
+      szIndividualFileName = oss.str();
+    }
+    EpiModelParameters::individualsFile.open(szIndividualFileName.c_str());
     if(EpiModelParameters::individualsFile.fail()) {
-      cerr << "ERROR: Individuals file '" << oss.str() << "' cannot be open for reading." << endl;
+      cerr << "ERROR: Individuals file '" << szIndividualFileName << "' cannot be open for reading." << endl;
       return false;
     }
   }
@@ -268,6 +283,14 @@ bool EpiModelParameters::readConfigFile(const char *configname) {
 	  iss>>szLabel;
 	} else if (param.compare("datafile")==0) {
 	  iss>>szBaseName;
+	} else if (param.compare("summaryfilename")==0) {
+	  iss>>szSummaryFileName;
+	} else if (param.compare("logfilename")==0) {
+	  iss>>szLogFileName;
+	} else if (param.compare("tractfilename")==0) {
+	  iss>>szTractFileName;
+	} else if (param.compare("individualfilename")==0) {
+	  iss>>szIndividualFileName;
 	} else if (param.compare("beta")==0) {
 	  read_config_double(beta, iss, "beta", 0.0, 1000000.0);
 	  if (beta<0.0) {

@@ -5,6 +5,8 @@
  */
 
 #include <climits>
+#include <cstring>
+#include <string>
 using namespace std;
 #include "params.h"
 
@@ -111,7 +113,11 @@ class EpiModelParameters {
   int nr;	        // the run number
   int seeddisp;	        // random number generator seed displacement
   bool bIndividualsFile; // whether to output an individuals file
-  string szBaseName;	// basename of data file
+  string szBaseName;	// basename of data files
+  string szLogFileName;      // name of log file
+  string szSummaryFileName;  // name of summary file 
+  string szTractFileName;    // name of tract file 
+  string szIndividualFileName;    // name of individual file 
   unsigned int nSeedInfectedTractFIPS;  // FIPS of the census tract to seed infected people
   unsigned int nSeedInfectedCountyFIPS; // FIPS of the county to seed infected people
   unsigned int nSeedInfectedStateFIPS;  // FIPS of the state to seed infected people
