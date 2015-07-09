@@ -369,7 +369,7 @@ struct Tract {
   
   friend istream& operator>>(istream& is, Tract& t) {
     char p; // because it is a comma separated file
-    is >> t.fips_state >> p >> t.fips_county >> p  >> t.fips_tract >> p  >> t.censuspopulation >> p   >> t.lon >> p >> t.lat;
+    is >> t.fips_state >> p >> t.fips_county >> p  >> t.fips_tract >> p  >> t.censuspopulation >> p   >> t.lat >> p >> t.lon;
     return is;
   }
   friend inline enum antiviralPolicy getAVPolicy(const Tract &t) { return (enum antiviralPolicy)(t.status&0x03); }
