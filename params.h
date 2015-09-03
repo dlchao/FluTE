@@ -54,7 +54,7 @@ extern const double basevload[VLOADNSUB][VLOADNDAY];
 #define VACCEFFLENGTH 28
 
 // maximum length of a simulation in days (change this if you want longer runs)
-#define MAXRUNLENGTH 180
+#define MAXRUNLENGTH 365
 
 // travel data
 extern const double travel_pr[TAG]; // age-specific travel probability per day
