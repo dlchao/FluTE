@@ -427,6 +427,7 @@ class EpiModel {
   void nightinfectsusceptibles(const Person &infected, Community &comm);
   void day(void);
   void night(void);
+  void tick(void);
   void travel_start(void);
   void travel_end(void);
   void response(void);
