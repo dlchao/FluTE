@@ -1,0 +1,21 @@
+# US with 70% pre-vaccination (requires mpiflute)
+label usa
+R0 1.6
+seed 1
+datafile usa
+logfile 0
+prestrategy prevaccinate
+reactivestrategy none
+vaccinationfraction 0.5
+responsethreshhold 0.001
+responsedelay 1
+ascertainmentdelay 1
+ascertainmentfraction 0.6
+travel 1
+seedairports 2
+seedinfecteddaily 1
+vaccinedata 0 0.4 0.4 0.67 0 0 0 0 0 0 0
+AVEs 0.3
+AVEp 0.6
+AVEi 0.62
+

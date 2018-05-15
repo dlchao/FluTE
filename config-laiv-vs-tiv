@@ -1,0 +1,12 @@
+# setup for pre-vaccinating school-age children in Los Angeles County with live, attenuated vaccine (vaccine 0) and trivalent inactivated vaccine (vaccine 1), based on Basta 2009. 20% of school-age children get inactivated instead of live.
+label example-la-laiv-tiv
+datafile la
+R0 1.8
+seed 1
+seedinfected 9
+seedinfecteddaily 1
+prestrategy prevaccinate
+vaccinationfraction 0.5
+vaccinepriorities 0 0 0 0 0 0 0 0 1 1 0 0 0
+vaccinedata 0 0.4 0.5 0.83 1 0.2 0.2 1 1 1 1
+vaccinedata 1 0.4 0.4 0.67 1 0 0 0 0 0 0

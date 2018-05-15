@@ -1,0 +1,8 @@
+# smallest reasonable configuration file
+label example-minimal
+datafile one
+R0 1.6
+seed 1
+seedinfected 10
+seedinfecteddaily 0
+
