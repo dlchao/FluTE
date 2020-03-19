@@ -30,6 +30,7 @@ class EpiModelParameters {
   double getR0() { return R0; }
   double *getSeasonality() { return seasonality; }
   int getTriggerDelay() { return nTriggerDelay; }
+  int getTriggerDay() { return nTriggerDay; }
   int getAscertainmentDelay() { return nAscertainmentDelay; }
   double getAscertainmentFraction() { return fSymptomaticAscertainment; }
   double getContactAscertainmentFraction() { return fContactAscertainment; }
@@ -129,7 +130,7 @@ class EpiModelParameters {
 
   // intervention parameters
   int bTrigger;                     // has the trigger for response been reached
-  int nTriggerTime;                 // time when reactive strategies are deployed everywhere
+  int nTriggerDay;                  // day when reactive strategies will be deployed everywhere
   int nTriggerDelay;                // days between trigger and response
   double fResponseThreshhold;       // fraction of ever infecteds before reaction
   int nAscertainmentDelay;          // days between symptomatic and ascertainment

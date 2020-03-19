@@ -22,7 +22,7 @@ extern "C" {
 using namespace std;
 
 const int nVersionMajor = 1;
-const int nVersionMinor = 15;
+const int nVersionMinor = 17;
 
 #define get_rand_double dsfmt_genrand_close_open(&dsfmt)
 #define get_rand_uint32 dsfmt_genrand_uint32(&dsfmt)
@@ -148,6 +148,11 @@ EpiModel::EpiModel(EpiModelParameters &params) {
   nTriggerDelay=params.getTriggerDelay();
   if (nTriggerDelay<0) {
     nTriggerTime=1;  // so that the response will start on the first evening of the simulation
+    bTrigger=true;
+  }
+  int temp=params.getTriggerDay();
+  if (temp>=0) {
+    nTriggerTime = 2*temp+1; // force the response to occur on specified day
     bTrigger=true;
   }
   nAscertainmentDelay = params.getAscertainmentDelay();
@@ -1255,7 +1260,7 @@ void EpiModel::initPopulation(void) {
  * isAscertained - has this person been ascertained as ill?
  */
 bool EpiModel::isAscertained(const Person &p) {
-  return isInfectious(p) && getWillBeSymptomatic(p) && p.iday>=getIncubationDays(p)+nAscertainmentDelay;
+  return isInfectious(p) && getWillBeSymptomatic(p) && getWillBeAscertained(p) && p.iday>=getIncubationDays(p)+nAscertainmentDelay;
 }
 
 /*
@@ -1302,14 +1307,14 @@ void EpiModel::infect(Person& p) {
     else
       setWithdrawDays(p,0); // will not withdraw
 
-    if (bTrigger && (getWithdrawDays(p)==0 || // doesn't voluntarily withdraw
-		     getWithdrawDays(p)-getIncubationDays(p)>1)) { // would withdraw later
+    if (bTrigger && nTimer>=nTriggerTime &&
+	(getWithdrawDays(p)==0 || // doesn't voluntarily withdraw
+	 getWithdrawDays(p)-getIncubationDays(p)>1)) { // would withdraw later after more than one day
       if ((fLiberalLeaveCompliance>0.0 && isWorkingAge(p) && p.nWorkplace>0 && get_rand_double<fLiberalLeaveCompliance) || // on liberal leave
 	  (fIsolationCompliance>0.0 && get_rand_double<fIsolationCompliance)) { // voluntary isolation
-	setWithdrawDays(p,getIncubationDays(p)+1);
+	setWithdrawDays(p,getIncubationDays(p)+1); // stay home the day after symptom onset
       }
     }
-
     assert(getWillBeSymptomatic(p));
   } else {                // will NOT be symptomatic
     setIncubationDays(p,0);
@@ -2355,6 +2360,8 @@ void EpiModel::response(void) {
       if (eVaccinationStrategy==MASSVAC && !isVaccinated(t))
 	vaccinate(t);
     }
+  } else {
+    assert(nTriggerTime % 2==1); // make sure nTriggerTime is an odd number or else it might not work
   }
 
   // 3. change vaccine priorities if needed
@@ -2424,6 +2431,7 @@ void EpiModel::response(void) {
 	       !isSchoolClosed(t,3) || !isSchoolClosed(t,4) ||
 	       !isSchoolClosed(t,5) || !isSchoolClosed(t,6) ||
 	       !isSchoolClosed(t,7) || !isSchoolClosed(t,8))) { // close schools in this tract
+	    t.nSchoolClosureTimer=nSchoolClosureDays;
 	    for (unsigned int i=t.nFirstCommunity; i<t.nLastCommunity; i++) {
 	      for (unsigned int pid=commvec[t.nFirstCommunity].nFirstPerson;
 		   pid<commvec[t.nLastCommunity-1].nLastPerson;

@@ -208,6 +208,9 @@ Fraction of the population ascertained that results in initiating reactive strat
 responsedelay : integer
 Number of days to wait before initiating reactive strategies. A values of -1 would deploy reactive strategies on day 0, the first day of the simulation. this differs from the pre-strategy option because pre-vaccination assumes that you can vaccinate people early enough such that they have full protection on day 0. With a responsedelay of -1, they might get vaccine on day 0. Default is 1. 
 
+responseday : integer
+Sets the reactive responses to begin on specified day instead of waiting for ascertained cases (instead of using responsethreshhold and responsedelay).
+
 ascertainmentdelay : integer
 Number of days it takes medical personnel to ascertain a symptomatic individual. Default is 1 day. 
 
