@@ -8,7 +8,7 @@ MPICPP      = mpicxx
 MPICCLINKER = mpicxx
 MAKE     = make --no-print-directory
 SHELL    = /bin/sh
-CFLAGS		= -Wall -pedantic -DDSFMT_MEXP=19937 -msse2 -DHAVE_SSE2 
+CFLAGS		= -Wall -Werror -pedantic -DDSFMT_MEXP=19937 -msse2 -DHAVE_SSE2 
 OPTI            = -O3 -march=native
 #OPTI = -pg # for profiling
 #the following two lines are for compiling mpiflute with OpenMPI

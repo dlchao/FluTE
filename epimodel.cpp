@@ -1836,7 +1836,7 @@ void EpiModel::night(void) {
 	      if (getAVPolicy(tractvec[comm.nTractID-nFirstTract])!=NOAV)
 		TAP(p);
 	      // quarantine the family
-	      if (isQuarantine(tractvec[comm.nTractID-nFirstTract]) && p.iday==getIncubationDays(p)+1) {
+	      if (isQuarantine(tractvec[comm.nTractID-nFirstTract])) {
 		for (unsigned int pid2=comm.nFirstPerson;
 		     pid2<comm.nLastPerson;
 		     pid2++) {
