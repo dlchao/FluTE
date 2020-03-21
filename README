@@ -29,7 +29,7 @@ parallel version of flute by compiling the source files with "PARALLEL"
 defined.
 
 Compiling mpiflute may require modification of the Makefile.  The
-current Makefile works with OpenMPI.
+current Makefile works with MPICH.
 
 --------------------------
 2. Data files
@@ -64,6 +64,11 @@ The sample populations are:
 one - a single community of 2000 people.
 
 seattle - metropolitan Seattle, based on the 2000 US Census.
+
+kingsnohomishpierce - three adjacent Washington State counties, based
+on the 2000 US Census. Note that King county tracts are at the end of
+the tracts file (out of numerical order) to help mpiflute assign tracts
+to nodes more evenly.
 
 la - Los Angeles County.  la-tracts.dat is not from the 2000 Census;
 It is based on 2007 PEPS estimates from Walter R. McDonald & 
@@ -279,6 +284,11 @@ where config is the name of your configuration file.
 The program will print out its version number and any configuration
 errors to stdout.
 
+mpiflute will not split census tracts of a county across processors.
+So mpiflute will not run unless each processor handles the population
+of at least one county. mpiflute will end with an error signal if it
+is unable to assign at least one county per processors while keeping
+counties intact.
 To run mpiflute on 32 processors using OpenMPI:
   mpirun -np32 mpiflute config
 
@@ -353,6 +363,9 @@ buildup.
 
 config-highrisk - Pre-vaccination of 100% of high-risk individuals,
 essential workers, pregnant women, and people who live with infants.
+
+config-kingsnohomishpierce - Pre-vaccination of three Washington State
+counties. For testing mpiflute with 2 processors.
 
 config-usa - Pre-vaccination of the US. Requires mpiflute (requires
 about 30 or more processors).

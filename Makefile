@@ -12,11 +12,13 @@ CFLAGS		= -Wall -Werror -pedantic -DDSFMT_MEXP=19937 -msse2 -DHAVE_SSE2
 OPTI            = -O3 -march=native
 #OPTI = -pg # for profiling
 #the following two lines are for compiling mpiflute with OpenMPI
-MPICFLAGS	= -Wall -I/app/openmpi/include -I/app/openmpi/include/openmpi/ompi -pthread -DDSFMT_MEXP=19937 
-MPILDFLAGS	= -L. -L/app/openmpi/lib -lmpi -lopen-rte -lopen-pal --export-dynamic -lm -lutil -lnsl -ldl -Wl
+#MPICFLAGS	= -Wall -I/app/openmpi/include -I/app/openmpi/include/openmpi/ompi -pthread -DDSFMT_MEXP=19937 
+#MPILDFLAGS	= -L. -L/app/openmpi/lib -lmpi -lopen-rte -lopen-pal -export-dynamic -lm -lutil -lnsl -ldl -Wl
 #uncomment the following two lines for compiling mpiflute with MPICH2 
-#MPICFLAGS       = -Wall -I/opt/mpich2/include  -pthread
-#MPILDFLAGS      = -L. -L/opt/mpich2/lib -lmpich -lrt --export-dynamic -lm -lutil -lnsl -ldl -Wl
+#MPICFLAGS       = -Wall -I/opt/mpich2/include  -pthread -DDSFMT_MEXP=19937  -msse2 -DHAVE_SSE2 
+MPICFLAGS       = -Wall -I/usr/include/x86_64-linux-gnu/mpich/  -pthread -DDSFMT_MEXP=19937  -msse2 -DHAVE_SSE2 
+#MPILDFLAGS      = -L. -L/opt/mpich2/lib -lmpich -lrt -export-dynamic -lm -lutil -lnsl -ldl -W
+MPILDFLAGS      = -L. -L/usr/lib/x86_64-linux-gnu/ -lmpich -lrt -export-dynamic -lm -lutil -lnsl -ldl -W
 LDFLAGS	= -lm
 INCLUDES	= 
 LIBS	= 

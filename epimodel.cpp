@@ -397,6 +397,12 @@ void EpiModel::read_tracts(void) {
     lasttract++;
   }
 
+  if (lasttract-firsttract<=1) {
+      cerr << "ERROR: Could not assign counties to nodes in mpiflute.  Try running with fewer nodes or using flute instead" << endl;
+      MPI::Finalize();
+      exit(-1);
+  }
+  
   if (firsttract>0)
     tractvec.erase(tractvec.begin(),tractvec.begin()+firsttract);
   if (lasttract<nNumTractsTotal)
