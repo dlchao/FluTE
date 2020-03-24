@@ -771,10 +771,10 @@ void EpiModel::read_workflow(void)
 	  if (outflow>0)
 	    MPI_Send(outStub, outflow, PersonStubType, j, DATA, MPI_COMM_WORLD);
 	  if (inflow>0)
-	    MPI_Recv(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD, NULL);
+	    MPI_Recv(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	} else {
 	  if (inflow>0)
-	    MPI_Recv(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD, NULL);
+	    MPI_Recv(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	  if (outflow>0)
 	    MPI_Send(outStub, outflow, PersonStubType, j, DATA, MPI_COMM_WORLD);
 	}
@@ -865,10 +865,10 @@ void EpiModel::read_workflow(void)
 	  if (inflow>0)
 	    MPI_Send(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD);
 	  if (outflow>0)
-	    MPI_Recv(outStub, outflow, PersonStubType, j, DATA, MPI_COMM_WORLD, NULL);
+	    MPI_Recv(outStub, outflow, PersonStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	} else {
 	  if (outflow>0)
-	    MPI_Recv(outStub, outflow, PersonStubType, j, DATA, MPI_COMM_WORLD, NULL);
+	    MPI_Recv(outStub, outflow, PersonStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	  if (inflow>0)
 	    MPI_Send(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD);
 	}
@@ -2083,10 +2083,10 @@ void EpiModel::travel_end(void) {
 	    if (outflow>0)
 	      MPI_Send(outStub, outflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD);
 	    if (inflow>0)
-	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, NULL);
+	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	  } else {
 	    if (inflow>0)
-	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, NULL);
+	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	    if (outflow>0)
 	      MPI_Send(outStub, outflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD);
 	  }
@@ -2252,10 +2252,10 @@ void EpiModel::travel_start(void) {
 	    if (outflow>0)
 	      MPI_Send(outStub, outflow, PersonStubType, j, DATA, MPI_COMM_WORLD);
 	    if (inflow>0)
-	      MPI_Recv(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD, NULL);
+	      MPI_Recv(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	  } else {
 	    if (inflow>0)
-	      MPI_Recv(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD, NULL);
+	      MPI_Recv(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	    if (outflow>0)
 	      MPI_Send(outStub, outflow, PersonStubType, j, DATA, MPI_COMM_WORLD);
 	  }
@@ -2675,10 +2675,10 @@ void EpiModel::sync(void) {
 	    if (outflow>0)
 	      MPI_Send(outStub, outflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD);
 	    if (inflow>0)
-	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, NULL);
+	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	  } else {
 	    if (inflow>0)
-	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, NULL);
+	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	    if (outflow>0)
 	      MPI_Send(outStub, outflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD);
 	  }
@@ -2773,10 +2773,10 @@ void EpiModel::sync(void) {
 	    if (outflow>0)
 	      MPI_Send(outStub, outflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD);
 	    if (inflow>0)
-	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, NULL);
+	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	  } else {
 	    if (inflow>0)
-	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, NULL);
+	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	    if (outflow>0)
 	      MPI_Send(outStub, outflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD);
 	  }
