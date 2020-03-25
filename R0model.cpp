@@ -3,7 +3,9 @@
  */
 
 #ifdef PARALLEL
-#include <mpi.h>
+extern "C" {
+  #include <mpi.h>
+}
 #endif
 extern "C" {
   #include "dSFMT.h"
