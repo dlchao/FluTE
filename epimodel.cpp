@@ -8,7 +8,7 @@
 #include <climits>
 #include <assert.h>
 #ifdef PARALLEL
-  #include <mpi.h>
+#include <mpi.h>
 #endif
 extern "C" {
   #include "dSFMT.h"   // for random number generation
@@ -42,17 +42,17 @@ EpiModel::EpiModel(int rank, int size, EpiModelParameters &params) : rank(rank),
   int          blocklen[8] = {1, 11, 1, 1, 1, 1, 1, 1}; 
   MPI_Aint     disp[8]; 
   PersonStub ps;
-  MPI_Address(&ps, disp);
-  MPI_Address(&ps.age, disp+1);
-  MPI_Address(&ps.nHomeRank, disp+2);
-  MPI_Address(&ps.nWorkRank, disp+3);
-  MPI_Address(&ps.nDayTract, disp+4);
-  MPI_Address(&ps.nDayComm, disp+5);
-  MPI_Address(&ps.nWorkplace, disp+6);
-  MPI_Address(&ps.fBaselineVES, disp+7);
+  MPI_Get_address(&ps, disp);
+  MPI_Get_address(&ps.age, disp+1);
+  MPI_Get_address(&ps.nHomeRank, disp+2);
+  MPI_Get_address(&ps.nWorkRank, disp+3);
+  MPI_Get_address(&ps.nDayTract, disp+4);
+  MPI_Get_address(&ps.nDayComm, disp+5);
+  MPI_Get_address(&ps.nWorkplace, disp+6);
+  MPI_Get_address(&ps.fBaselineVES, disp+7);
 
   for (int i=7; i>=0; i--) disp[i] -= disp[0];
-  MPI_Type_struct( 8, blocklen, disp, type, &PersonStubType);
+  MPI_Type_create_struct( 8, blocklen, disp, type, &PersonStubType);
   MPI_Type_commit( &PersonStubType);
 
   MPI_Datatype stubtype[5] = {MPI_UNSIGNED, MPI_INT, MPI_UNSIGNED, 
@@ -61,14 +61,14 @@ EpiModel::EpiModel(int rank, int size, EpiModelParameters &params) : rank(rank),
   int          stubblocklen[5] = {1, 1, 1, 7, 1};
   MPI_Aint     stubdisp[5]; 
   PersonStatusStub pss;
-  MPI_Address(&pss, stubdisp);
-  MPI_Address(&pss.nHomeRank, stubdisp+1);
-  MPI_Address(&pss.nDayComm, stubdisp+2);
-  MPI_Address(&pss.status, stubdisp+3);
-  MPI_Address(&pss.sourceid, stubdisp+4);
+  MPI_Get_address(&pss, stubdisp);
+  MPI_Get_address(&pss.nHomeRank, stubdisp+1);
+  MPI_Get_address(&pss.nDayComm, stubdisp+2);
+  MPI_Get_address(&pss.status, stubdisp+3);
+  MPI_Get_address(&pss.sourceid, stubdisp+4);
 
   for (int i=4; i>=0; i--) stubdisp[i] -= stubdisp[0];
-  MPI_Type_struct( 5, stubblocklen, stubdisp, stubtype, &PersonStatusStubType);
+  MPI_Type_create_struct( 5, stubblocklen, stubdisp, stubtype, &PersonStatusStubType);
   MPI_Type_commit( &PersonStatusStubType);
 #else
 EpiModel::EpiModel(EpiModelParameters &params) {
@@ -229,7 +229,7 @@ EpiModel::EpiModel(EpiModelParameters &params) {
   initPopulation();
 #ifdef PARALLEL
   if (nNumPeopleTotal<=0) {
-    MPI::COMM_WORLD.Allreduce(&nNumPerson, &nNumPeopleTotal, 1, MPI::UNSIGNED, MPI::SUM);
+    MPI_Allreduce(&nNumPerson, &nNumPeopleTotal, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
     if (!bTravel)
       cout << "WARNING: Short-term travel parameter was not set" << endl;
   }
@@ -271,7 +271,7 @@ EpiModel::EpiModel(EpiModelParameters &params) {
 #ifdef PARALLEL
     int len = out.str().length();
     int *lens = new int[size];
-    MPI::COMM_WORLD.Allgather(&len, 1, MPI::INT, lens, 1, MPI::INT);
+    MPI_Allgather(&len, 1, MPI_INT, lens, 1, MPI_INT, MPI_COMM_WORLD);
     int *disps = new int[size];
     disps[0]=0;
     int totallen=0;
@@ -282,8 +282,8 @@ EpiModel::EpiModel(EpiModelParameters &params) {
     }
 
     char *buf = new char[totallen+1];
-    MPI::COMM_WORLD.Gatherv(out.str().c_str(), out.str().length(), MPI::CHAR,
-			    buf, lens, disps, MPI::CHAR, 0);
+    MPI_Gatherv(out.str().c_str(), out.str().length(), MPI_CHAR,
+		buf, lens, disps, MPI_CHAR, 0, MPI_COMM_WORLD);
     if (!rank) {
       buf[totallen] = 0; // null terminate the string
       *tractfile << buf;
@@ -370,7 +370,7 @@ void EpiModel::read_tracts(void) {
   ifstream iss(oss.str().c_str());
   if (!iss) {
     cerr << "ERROR: " << oss.str() << " not found." << endl;
-    MPI::Finalize();
+    MPI_Finalize();
     exit(-1);
   }
   istream_iterator< Tract > iscit(iss), eos;
@@ -399,7 +399,7 @@ void EpiModel::read_tracts(void) {
 
   if (lasttract-firsttract<=1) {
       cerr << "ERROR: Could not assign counties to nodes in mpiflute.  Try running with fewer nodes or using flute instead" << endl;
-      MPI::Finalize();
+      MPI_Finalize();
       exit(-1);
   }
   
@@ -411,8 +411,8 @@ void EpiModel::read_tracts(void) {
   int *disps = new int[size+1]; // first tract ID on each processor
   numTractsPerNode = new int[size];// number of tracts on each processor
   int nNumTracts = tractvec.size();
-  MPI::COMM_WORLD.Allgather(&nNumTracts, 1, MPI::INT,
-			    numTractsPerNode, 1, MPI::INT);
+  MPI_Allgather(&nNumTracts, 1, MPI_INT,
+		numTractsPerNode, 1, MPI_INT, MPI_COMM_WORLD);
   disps[0]=0;
   for (int i=0; i<size; i++) {
     if (i==rank)
@@ -422,7 +422,7 @@ void EpiModel::read_tracts(void) {
     if (numTractsPerNode[i]==0) {
       if (rank==0)
 	cerr << "ERROR: Could not assign counties to nodes in mpiflute.  Try running with fewer nodes or using flute instead" << endl;
-      MPI::Finalize();
+      MPI_Finalize();
       exit(-1);
     }
   }
@@ -438,16 +438,16 @@ void EpiModel::read_tracts(void) {
       tractToCPU[j] = i;
   for (unsigned int i=0; i<tractvec.size(); i++)
     tractbuf[i] = tractvec[i].fips_tract;
-  MPI::COMM_WORLD.Allgatherv(tractbuf, tractvec.size(), MPI::UNSIGNED,
-  			     tractToFIPStract, numTractsPerNode, disps, MPI::UNSIGNED);
+  MPI_Allgatherv(tractbuf, tractvec.size(), MPI_UNSIGNED,
+		 tractToFIPStract, numTractsPerNode, disps, MPI_UNSIGNED, MPI_COMM_WORLD);
   for (unsigned int i=0; i<tractvec.size(); i++)
     tractbuf[i] = tractvec[i].fips_county;
-  MPI::COMM_WORLD.Allgatherv(tractbuf, tractvec.size(), MPI::UNSIGNED,
-  			     tractToFIPScounty, numTractsPerNode, disps, MPI::UNSIGNED);
+  MPI_Allgatherv(tractbuf, tractvec.size(), MPI_UNSIGNED,
+		 tractToFIPScounty, numTractsPerNode, disps, MPI_UNSIGNED, MPI_COMM_WORLD);
   for (unsigned int i=0; i<tractvec.size(); i++)
     tractbuf[i] = tractvec[i].fips_state;
-  MPI::COMM_WORLD.Allgatherv(tractbuf, tractvec.size(), MPI::UNSIGNED,
-  			     tractToFIPSstate, numTractsPerNode, disps, MPI::UNSIGNED);
+  MPI_Allgatherv(tractbuf, tractvec.size(), MPI_UNSIGNED,
+		 tractToFIPSstate, numTractsPerNode, disps, MPI_UNSIGNED, MPI_COMM_WORLD);
   delete disps;
   delete tractbuf;
 #else // single processor version
@@ -516,8 +516,8 @@ void EpiModel::read_tracts(void) {
   cout << rank << " has " << tractvec.size() << " tracts and " << commvec.size() << " communities." << endl;
   numPeoplePerNode = new unsigned int[size];// number of people on each processor
   int nNumPeople = pvec.size();
-  MPI::COMM_WORLD.Allgather(&nNumPeople, 1, MPI::UNSIGNED,
-			    numPeoplePerNode, 1, MPI::UNSIGNED);
+  MPI_Allgather(&nNumPeople, 1, MPI_UNSIGNED,
+		numPeoplePerNode, 1, MPI_UNSIGNED, MPI_COMM_WORLD);
 #else
   cout << tractvec.size() << " tracts, " << commvec.size() << " communities" << endl;
 #endif
@@ -576,7 +576,7 @@ void EpiModel::read_workflow(void)
   if (!iss) {
     cerr << "ERROR: " << oss.str() << " not found." << endl;
 #ifdef PARALLEL
-    MPI::Finalize();
+    MPI_Finalize();
 #endif
     exit(-1);
   }
@@ -610,7 +610,7 @@ void EpiModel::read_workflow(void)
   if (!flow) {
     cerr << "ERROR: Could not allocate workerflow matrix. (" << (nNumTracts*nNumTractsTotal) << " ints)" << endl;
 #ifdef PARALLEL
-    MPI::Finalize();
+    MPI_Finalize();
 #endif
     exit(-1);
   }
@@ -641,7 +641,7 @@ void EpiModel::read_workflow(void)
     if (!bSuccess) {
       cerr << "ERROR: Could not find any workerflow files." << endl;
 #ifdef PARALLEL
-      MPI::Finalize();
+      MPI_Finalize();
 #endif
       exit(-1);
     }
@@ -737,8 +737,8 @@ void EpiModel::read_workflow(void)
       buf[p.nWorkRank]++;
   }
   int *immigrants = new int[size*size];
-  MPI::COMM_WORLD.Allgather(buf, size, MPI::INT,
-			    immigrants, size, MPI::INT);
+  MPI_Allgather(buf, size, MPI_INT,
+		immigrants, size, MPI_INT, MPI_COMM_WORLD);
   delete buf;
   int maxin=0, maxout=0;
   for (int j=0; j<size; j++) {
@@ -769,14 +769,14 @@ void EpiModel::read_workflow(void)
 	assert(count==outflow);
 	if (rank<j) {
 	  if (outflow>0)
-	    MPI::COMM_WORLD.Send(outStub, outflow, PersonStubType, j, DATA);
+	    MPI_Send(outStub, outflow, PersonStubType, j, DATA, MPI_COMM_WORLD);
 	  if (inflow>0)
-	    MPI::COMM_WORLD.Recv(inStub, inflow, PersonStubType, j, DATA);
+	    MPI_Recv(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	} else {
 	  if (inflow>0)
-	    MPI::COMM_WORLD.Recv(inStub, inflow, PersonStubType, j, DATA);
+	    MPI_Recv(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	  if (outflow>0)
-	    MPI::COMM_WORLD.Send(outStub, outflow, PersonStubType, j, DATA);
+	    MPI_Send(outStub, outflow, PersonStubType, j, DATA, MPI_COMM_WORLD);
 	}
 
 	for (int i=0; i<inflow; i++) {
@@ -863,14 +863,14 @@ void EpiModel::read_workflow(void)
 	assert(count==inflow);
 	if (rank<j) {
 	  if (inflow>0)
-	    MPI::COMM_WORLD.Send(inStub, inflow, PersonStubType, j, DATA);
+	    MPI_Send(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD);
 	  if (outflow>0)
-	    MPI::COMM_WORLD.Recv(outStub, outflow, PersonStubType, j, DATA);
+	    MPI_Recv(outStub, outflow, PersonStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	} else {
 	  if (outflow>0)
-	    MPI::COMM_WORLD.Recv(outStub, outflow, PersonStubType, j, DATA);
+	    MPI_Recv(outStub, outflow, PersonStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	  if (inflow>0)
-	    MPI::COMM_WORLD.Send(inStub, inflow, PersonStubType, j, DATA);
+	    MPI_Send(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD);
 	}
 	for (int i=0; i<outflow; i++) {
 	  PersonStub &pstub = outStub[i];
@@ -2039,7 +2039,7 @@ void EpiModel::travel_end(void) {
     }
   }
   int *updates = new int[size*size];
-  MPI::COMM_WORLD.Allgather(buf, size, MPI::INT, updates, size, MPI::INT);
+  MPI_Allgather(buf, size, MPI_INT, updates, size, MPI_INT, MPI_COMM_WORLD);
 
   int maxin=0, maxout=0;
   for (int j=0; j<size; j++) {
@@ -2081,14 +2081,14 @@ void EpiModel::travel_end(void) {
 	  assert(count==outflow);
 	  if (rank<j) {
 	    if (outflow>0)
-	      MPI::COMM_WORLD.Send(outStub, outflow, PersonStatusStubType, j, DATA);
+	      MPI_Send(outStub, outflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD);
 	    if (inflow>0)
-	      MPI::COMM_WORLD.Recv(inStub, inflow, PersonStatusStubType, j, DATA);
+	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	  } else {
 	    if (inflow>0)
-	      MPI::COMM_WORLD.Recv(inStub, inflow, PersonStatusStubType, j, DATA);
+	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	    if (outflow>0)
-	      MPI::COMM_WORLD.Send(outStub, outflow, PersonStatusStubType, j, DATA);
+	      MPI_Send(outStub, outflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD);
 	  }
 
 	  // update people returning home from travel to other nodes
@@ -2220,7 +2220,7 @@ void EpiModel::travel_start(void) {
     }
   }
   int *updates = new int[size*size];
-  MPI::COMM_WORLD.Allgather(buf, size, MPI::INT, updates, size, MPI::INT);
+  MPI_Allgather(buf, size, MPI_INT, updates, size, MPI_INT, MPI_COMM_WORLD);
 
   int maxin=0, maxout=0;
   for (int j=0; j<size; j++) {
@@ -2250,14 +2250,14 @@ void EpiModel::travel_start(void) {
 	  assert(count==outflow);
 	  if (rank<j) {
 	    if (outflow>0)
-	      MPI::COMM_WORLD.Send(outStub, outflow, PersonStubType, j, DATA);
+	      MPI_Send(outStub, outflow, PersonStubType, j, DATA, MPI_COMM_WORLD);
 	    if (inflow>0)
-	      MPI::COMM_WORLD.Recv(inStub, inflow, PersonStubType, j, DATA);
+	      MPI_Recv(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	  } else {
 	    if (inflow>0)
-	      MPI::COMM_WORLD.Recv(inStub, inflow, PersonStubType, j, DATA);
+	      MPI_Recv(inStub, inflow, PersonStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	    if (outflow>0)
-	      MPI::COMM_WORLD.Send(outStub, outflow, PersonStubType, j, DATA);
+	      MPI_Send(outStub, outflow, PersonStubType, j, DATA, MPI_COMM_WORLD);
 	  }
 	  // update people who traveled from other nodes
 	  for (int i=0; i<inflow; i++) {
@@ -2329,7 +2329,7 @@ void EpiModel::response(void) {
     }
 #ifdef PARALLEL
     int nNumAscertainedTotal=0; // across all nodes
-    MPI::COMM_WORLD.Allreduce(&nNumAscertained, &nNumAscertainedTotal, 1, MPI::UNSIGNED, MPI::SUM);
+    MPI_Allreduce(&nNumAscertained, &nNumAscertainedTotal, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
     if (nNumAscertainedTotal/(double)nNumPeopleTotal>fResponseThreshhold) { // trigger reached
 #else
     if (nNumAscertained/(double)nNumPerson>fResponseThreshhold) { // trigger reached
@@ -2515,7 +2515,7 @@ void EpiModel::response(void) {
 #ifdef PARALLEL
       for (int i=1; i<=nHighestPriority; i++) {
 	unsigned int total=0;
-	MPI::COMM_WORLD.Allreduce(wantthisvac+i, &total, 1, MPI::UNSIGNED, MPI::SUM);
+	MPI_Allreduce(wantthisvac+i, &total, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
 	wantthisvac[i]=total;
       }
 #endif
@@ -2604,10 +2604,10 @@ void EpiModel::response(void) {
   // 8. Record number of vaccine and antivirals distributed
 #ifdef PARALLEL
   for (int i=0; i<nNumVaccineTypes; i++) {
-    MPI::COMM_WORLD.Allreduce(nNumVaccineDosesUsed+i, nNumVaccineDosesUsedTotal+i, 1, MPI::UNSIGNED, MPI::SUM);
+    MPI_Allreduce(nNumVaccineDosesUsed+i, nNumVaccineDosesUsedTotal+i, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
     nNumVaccineDosesUsedHistory[i].push_back(nNumVaccineDosesUsedTotal[i]);
   }
-  MPI::COMM_WORLD.Allreduce(&nNumAntiviralsUsed, &nNumAntiviralsUsedTotal, 1, MPI::UNSIGNED, MPI::SUM);
+  MPI_Allreduce(&nNumAntiviralsUsed, &nNumAntiviralsUsedTotal, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
   nNumAntiviralsUsedHistory.push_back(nNumAntiviralsUsedTotal);
 #else
   for (int i=0; i<nNumVaccineTypes; i++)
@@ -2632,7 +2632,7 @@ void EpiModel::sync(void) {
     }
   }
   int *updates = new int[size*size];
-  MPI::COMM_WORLD.Allgather(buf, size, MPI::INT, updates, size, MPI::INT);
+  MPI_Allgather(buf, size, MPI_INT, updates, size, MPI_INT, MPI_COMM_WORLD);
 
   int maxin=0, maxout=0;
   for (int j=0; j<size; j++) {
@@ -2673,14 +2673,14 @@ void EpiModel::sync(void) {
 	  assert(count==outflow);
 	  if (rank<j) {
 	    if (outflow>0)
-	      MPI::COMM_WORLD.Send(outStub, outflow, PersonStatusStubType, j, DATA);
+	      MPI_Send(outStub, outflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD);
 	    if (inflow>0)
-	      MPI::COMM_WORLD.Recv(inStub, inflow, PersonStatusStubType, j, DATA);
+	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	  } else {
 	    if (inflow>0)
-	      MPI::COMM_WORLD.Recv(inStub, inflow, PersonStatusStubType, j, DATA);
+	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	    if (outflow>0)
-	      MPI::COMM_WORLD.Send(outStub, outflow, PersonStatusStubType, j, DATA);
+	      MPI_Send(outStub, outflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD);
 	  }
 	  // update people who work on other nodes
 	  for (int i=0; i<inflow; i++) {
@@ -2726,7 +2726,7 @@ void EpiModel::sync(void) {
       buf[p.nWorkRank]++;
     }
   }
-  MPI::COMM_WORLD.Allgather(buf, size, MPI::INT, updates, size, MPI::INT);
+  MPI_Allgather(buf, size, MPI_INT, updates, size, MPI_INT, MPI_COMM_WORLD);
 
   maxin=0;
   maxout=0;
@@ -2771,14 +2771,14 @@ void EpiModel::sync(void) {
 	  assert(count==outflow);
 	  if (rank<j) {
 	    if (outflow>0)
-	      MPI::COMM_WORLD.Send(outStub, outflow, PersonStatusStubType, j, DATA);
+	      MPI_Send(outStub, outflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD);
 	    if (inflow>0)
-	      MPI::COMM_WORLD.Recv(inStub, inflow, PersonStatusStubType, j, DATA);
+	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	  } else {
 	    if (inflow>0)
-	      MPI::COMM_WORLD.Recv(inStub, inflow, PersonStatusStubType, j, DATA);
+	      MPI_Recv(inStub, inflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	    if (outflow>0)
-	      MPI::COMM_WORLD.Send(outStub, outflow, PersonStatusStubType, j, DATA);
+	      MPI_Send(outStub, outflow, PersonStatusStubType, j, DATA, MPI_COMM_WORLD);
 	  }
 
 	  // update people who live on other nodes
@@ -2817,8 +2817,8 @@ void EpiModel::sync(void) {
   delete updates;
 
   for (int i=0; i<nNumVaccineTypes; i++)
-    MPI::COMM_WORLD.Allreduce(nNumVaccineDosesUsed+i, nNumVaccineDosesUsedTotal+i, 1, MPI::UNSIGNED, MPI::SUM);
-  MPI::COMM_WORLD.Allreduce(&nNumAntiviralsUsed, &nNumAntiviralsUsedTotal, 1, MPI::UNSIGNED, MPI::SUM);
+    MPI_Allreduce(nNumVaccineDosesUsed+i, nNumVaccineDosesUsedTotal+i, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&nNumAntiviralsUsed, &nNumAntiviralsUsedTotal, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
 }
 #endif
 
@@ -2857,7 +2857,7 @@ void EpiModel::log(void) {
 #ifdef PARALLEL
   int len = out.str().length();
   int *lens = new int[size];
-  MPI::COMM_WORLD.Allgather(&len, 1, MPI::INT, lens, 1, MPI::INT);
+  MPI_Allgather(&len, 1, MPI_INT, lens, 1, MPI_INT, MPI_COMM_WORLD);
   int *disps = new int[size];
   disps[0]=0;
   int totallen=0;
@@ -2868,8 +2868,8 @@ void EpiModel::log(void) {
   }
 
   char *buf = new char[totallen+1];
-  MPI::COMM_WORLD.Gatherv(out.str().c_str(), out.str().length(), MPI::CHAR,
-			  buf, lens, disps, MPI::CHAR, 0);
+  MPI_Gatherv(out.str().c_str(), out.str().length(), MPI_CHAR,
+	      buf, lens, disps, MPI_CHAR, 0, MPI_COMM_WORLD);
   if (!rank) {
     buf[totallen] = 0; // null terminate the string
     *logfile << buf;
@@ -2908,13 +2908,13 @@ void EpiModel::summary(void) {
   }
 #ifdef PARALLEL
   unsigned int result;
-  MPI::COMM_WORLD.Reduce(&nNumCommunities, &result, 1, MPI::UNSIGNED, MPI::SUM, 0);
+  MPI_Reduce(&nNumCommunities, &result, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
   if (!rank)
     outfile << "Communities: " << result << endl;
-  MPI::COMM_WORLD.Reduce(&nNumFamilies, &result, 1, MPI::UNSIGNED, MPI::SUM, 0);
+  MPI_Reduce(&nNumFamilies, &result, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
   if (!rank)
     outfile << "Families: " << result << endl;
-  MPI::COMM_WORLD.Reduce(&nNumPerson, &result, 1, MPI::UNSIGNED, MPI::SUM, 0);
+  MPI_Reduce(&nNumPerson, &result, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
   if (!rank)
     outfile << "People: " << result << endl;
   if (!rank) {
@@ -3153,9 +3153,9 @@ void EpiModel::summary(void) {
 #ifdef PARALLEL
   for (int j=0; j<TAG; j++) {
     unsigned int sum;
-    MPI::COMM_WORLD.Reduce(&nTotal[j], &sum, 1, MPI::UNSIGNED, MPI::SUM, 0);
+    MPI_Reduce(&nTotal[j], &sum, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
     nTotal[j]=sum;
-    MPI::COMM_WORLD.Reduce(&nTotalSym[j], &sum, 1, MPI::UNSIGNED, MPI::SUM, 0);
+    MPI_Reduce(&nTotalSym[j], &sum, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
     nTotalSym[j]=sum;
   }
   unsigned int nVacSymptomatic[TAG*NUMVACCINES];	// number of vaccinated symptomatic people (vaccine 1)
@@ -3196,21 +3196,21 @@ void EpiModel::summary(void) {
 
   for (int j=0; j<TAG; j++) {
     unsigned int sum;
-    MPI::COMM_WORLD.Reduce(nUnvacSymptomatic+j, &sum, 1, MPI::UNSIGNED, MPI::SUM, 0);
+    MPI_Reduce(nUnvacSymptomatic+j, &sum, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
     nUnvacSymptomatic[j] = sum;
-    MPI::COMM_WORLD.Reduce(nUnvac+j, &sum, 1, MPI::UNSIGNED, MPI::SUM, 0);
+    MPI_Reduce(nUnvac+j, &sum, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
     nUnvac[j] = sum;
     for (int i=0; i<nNumVaccineTypes; i++) {
-      MPI::COMM_WORLD.Reduce(nVacSymptomatic+i*TAG+j, &sum, 1, MPI::UNSIGNED, MPI::SUM, 0);
+      MPI_Reduce(nVacSymptomatic+i*TAG+j, &sum, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
       nVacSymptomatic[i*TAG+j] = sum;
-      MPI::COMM_WORLD.Reduce(nVac+i*TAG+j, &sum, 1, MPI::UNSIGNED, MPI::SUM, 0);
+      MPI_Reduce(nVac+i*TAG+j, &sum, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
       nVac[i*TAG+j] = sum;
     }
-    MPI::COMM_WORLD.Reduce(nHighRiskSymptomatic+j, &sum, 1, MPI::UNSIGNED, MPI::SUM, 0);
+    MPI_Reduce(nHighRiskSymptomatic+j, &sum, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
     nHighRiskSymptomatic[j] = sum;
-    MPI::COMM_WORLD.Reduce(nPregnantSymptomatic+j, &sum, 1, MPI::UNSIGNED, MPI::SUM, 0);
+    MPI_Reduce(nPregnantSymptomatic+j, &sum, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
     nPregnantSymptomatic[j] = sum;
-    MPI::COMM_WORLD.Reduce(nHighRiskPregnantSymptomatic+j, &sum, 1, MPI::UNSIGNED, MPI::SUM, 0);
+    MPI_Reduce(nHighRiskPregnantSymptomatic+j, &sum, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
     nHighRiskPregnantSymptomatic[j] = sum;
   }
 
@@ -3354,7 +3354,7 @@ void EpiModel::outputIndividuals(void) {
 #ifdef PARALLEL
     int len = out.str().length();
     int *lens = new int[size];
-    MPI::COMM_WORLD.Allgather(&len, 1, MPI::INT, lens, 1, MPI::INT);
+    MPI_Allgather(&len, 1, MPI_INT, lens, 1, MPI_INT, MPI_COMM_WORLD);
     int *disps = new int[size];
     disps[0]=0;
     int totallen=0;
@@ -3365,8 +3365,8 @@ void EpiModel::outputIndividuals(void) {
     }
 
     char *buf = new char[totallen+1];
-    MPI::COMM_WORLD.Gatherv(out.str().c_str(), out.str().length(), MPI::CHAR,
-			    buf, lens, disps, MPI::CHAR, 0);
+    MPI_Gatherv(out.str().c_str(), out.str().length(), MPI_CHAR,
+			    buf, lens, disps, MPI_CHAR, 0, MPI_COMM_WORLD);
     if (!rank) {
       buf[totallen] = 0; // null terminate the string
       *individualsfile << "rank,dayrank,id,age,familyid,homecomm,homeneighborhood,daycomm,dayneighborhood,workplace,infectedtime,sourceid,sourcetype" << endl;
@@ -3420,7 +3420,7 @@ void EpiModel::seedinfected(void) {
 	for (int i=0; i<nSeedInfectedNumber; i++)
 	  pids[i] = get_rand_uint32 % nNumPeopleTotal;
       }
-      MPI::COMM_WORLD.Bcast(pids, nSeedInfectedNumber, MPI::UNSIGNED, 0);
+      MPI_Bcast(pids, nSeedInfectedNumber, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
       unsigned int offset=0;
       for (int j=0; j<rank; j++)
 	offset += numPeoplePerNode[j];
@@ -3531,7 +3531,7 @@ void EpiModel::prerun(void) {
 #ifdef PARALLEL
 	for (int i=1; i<=nHighestPriority; i++) {
 	  unsigned int total=0;
-	  MPI::COMM_WORLD.Allreduce(wantthisvac+i, &total, 1, MPI::UNSIGNED, MPI::SUM);
+	  MPI_Allreduce(wantthisvac+i, &total, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
 	  wantthisvac[i]=total;
 	}
 #endif
@@ -3586,7 +3586,7 @@ void EpiModel::prerun(void) {
     }
 #ifdef PARALLEL
     for (int i=0; i<nNumVaccineTypes; i++)
-      MPI::COMM_WORLD.Allreduce(nNumVaccineDosesUsed+i, nNumVaccineDosesUsedTotal+i, 1, MPI::UNSIGNED, MPI::SUM);
+      MPI_Allreduce(nNumVaccineDosesUsed+i, nNumVaccineDosesUsedTotal+i, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
 #endif
   }
   if (!bSeedDaily)
@@ -3644,9 +3644,9 @@ void EpiModel::run(void) {
     }
 #ifdef PARALLEL
     unsigned int nNumSymptomaticTotal=0;
-    MPI::COMM_WORLD.Allreduce(&nNumSymptomatic, &nNumSymptomaticTotal, 1, MPI::UNSIGNED, MPI::SUM);
+    MPI_Allreduce(&nNumSymptomatic, &nNumSymptomaticTotal, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
     nNumSymptomaticHistory.push_back(nNumSymptomaticTotal);
-    MPI::COMM_WORLD.Allreduce(&nNumCumulativeSymptomatic, &nNumSymptomaticTotal, 1, MPI::UNSIGNED, MPI::SUM);
+    MPI_Allreduce(&nNumCumulativeSymptomatic, &nNumSymptomaticTotal, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
     nNumCumulativeSymptomaticHistory.push_back(nNumSymptomaticTotal);
 #else
     nNumCumulativeSymptomaticHistory.push_back(nNumCumulativeSymptomatic);

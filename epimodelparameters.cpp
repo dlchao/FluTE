@@ -79,11 +79,11 @@ EpiModelParameters::EpiModelParameters(const char *configname) {
   flag = (readConfigFile(configname)?flag:MiscError);
   flag = (createOutputFiles()?flag:FileError);
 #ifdef PARALLEL
-  MPI::COMM_WORLD.Bcast(&flag, 1, MPI::INT, 0);
+  MPI_Bcast(&flag, 1, MPI_INT, 0, MPI_COMM_WORLD);
 #endif
   if(flag) {
 #ifdef PARALLEL
-    MPI::Finalize();
+    MPI_Finalize();
 #endif
     exit(flag);
   }
@@ -141,7 +141,7 @@ bool EpiModelParameters::createOutputFiles(void) {
     }
 #ifdef PARALLEL
   }
-  MPI::COMM_WORLD.Bcast(&nr, 1, MPI::INT, 0);
+    MPI_Bcast(&nr, 1, MPI_INT, 0, MPI_COMM_WORLD);
 #endif
 
 #ifdef PARALLEL
@@ -266,7 +266,7 @@ bool EpiModelParameters::readConfigFile(const char *configname) {
 #endif
       cerr << "ERROR: " << configname << " not found." << endl;
 #ifdef PARALLEL
-    MPI::Finalize();
+    MPI_Finalize();
 #endif
     exit(-1);
   } else {
@@ -297,7 +297,7 @@ bool EpiModelParameters::readConfigFile(const char *configname) {
 #ifdef PARALLEL
 	    if (!rank)
 	      cerr << "ERROR: beta can not be less than 0" << endl;
-	    MPI::Finalize();
+	    MPI_Finalize();
 #else
 	    cerr << "ERROR: beta can not be less than 0" << endl;
 #endif
