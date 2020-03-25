@@ -189,3 +189,5 @@ Fixed bug in reactive school closures.
 Added "responseday" parameter.
 Fixed bug in liberal leave and isolation implementation.
 Fixed bug in mpiflute that allowed a processor to try running with no population.
+Zane Jakobs updated the MPI calls to 3.0
+
