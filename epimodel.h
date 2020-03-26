@@ -258,6 +258,7 @@ struct Person {
   friend inline unsigned char whichVaccine(const Person &p) { return p.vbits&0x0F; }	// which vaccine did this person get?
   friend inline bool isWithdrawn(const Person &p) { return p.vbits&WITHDRAWN; }
   friend inline void setWithdrawn(Person &p) {p.vbits|=WITHDRAWN;}
+  friend inline void clearWithdrawn(Person &p) {p.vbits&=(~WITHDRAWN);}
   friend inline bool isQuarantined(const Person &p) { return p.vbits&QUARANTINED; }
   friend inline void setQuarantined(Person &p) {p.vbits|=QUARANTINED;}
   friend inline void clearQuarantined(Person &p) {p.vbits&=(~QUARANTINED);}

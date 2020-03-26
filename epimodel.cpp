@@ -1866,7 +1866,8 @@ void EpiModel::night(void) {
 	if (p.iday>=VLOADNDAY) {
 	  if (isSymptomatic(p))
 	    comm.nsym[p.age]--;
-	  p.status &= ~(SUSCEPTIBLE|INFECTED|SYMPTOMATIC|WITHDRAWN); // recovered
+	  p.status &= ~(SUSCEPTIBLE|INFECTED|SYMPTOMATIC); // recovered
+	  clearWithdrawn(p); // recovered
 	  comm.ninf[p.age]--;
 	  p.iday=0;
 	}
@@ -1918,7 +1919,8 @@ void EpiModel::night(void) {
 	  }
 	  p.iday++;
 	  if (p.iday>=VLOADNDAY) {
-	    p.status&=~(SUSCEPTIBLE|INFECTED|SYMPTOMATIC|WITHDRAWN); // recovered
+	    p.status &= ~(SUSCEPTIBLE|INFECTED|SYMPTOMATIC); // recovered
+	    clearWithdrawn(p); // recovered
 	    p.iday=0;
 	  }
 	}
@@ -1947,7 +1949,8 @@ void EpiModel::night(void) {
 	}
 	p.iday++;
 	if (p.iday>=VLOADNDAY) {
-	  p.status&=~(SUSCEPTIBLE|INFECTED|SYMPTOMATIC|WITHDRAWN); // recovered
+	  p.status &= ~(SUSCEPTIBLE|INFECTED|SYMPTOMATIC); // recovered
+	  clearWithdrawn(p); // recovered
 	  p.iday=0;
 	  // we could probably eliminate this person from the vector now
 	}
