@@ -177,11 +177,9 @@ EpiModel::EpiModel(EpiModelParameters &params) {
   // make cumulative distribution for withdraw probabilities
   // convert from double to unsigned int for efficiency
   for (int j=0; j<3; j++) {
-    double sum=0.0;
     withdrawcdf[j][0] = withdrawprob[j][0];
     for (int i=1; i<WITHDRAWDAYS; i++) {
-      sum += withdrawprob[j][i-1];
-      withdrawcdf[j][i] = withdrawcdf[j][i-1] + ((1.0-sum)*withdrawprob[j][i]);
+      withdrawcdf[j][i] = withdrawcdf[j][i-1] + ((1.0-withdrawcdf[j][i-1])*withdrawprob[j][i]);
       assert(withdrawcdf[j][i]<=1.0);
     }
   }
